@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Dict, Tuple
 
 import cv2
@@ -8,6 +9,8 @@ from tqdm import tqdm
 from ..camera import Camera
 from ..depths import Depth
 from ..images import Image
+from ..utils.colmap_io import (write_cameras_text, write_images_text,
+                               write_points3D_text)
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +34,7 @@ class RGBDReconstruction:
         # TODO: move into config, implement image rescaling as well as depths
         self.target_width, self.target_height = self._get_image_shape(images)
         self.cameras = self._rescale_intrinsics(cameras)
+        self.images = images
         self.rgbds = self._combine_images_and_depths(images, depths)
 
     def _rescale_intrinsics(
@@ -165,8 +169,26 @@ class RGBDReconstruction:
                 intrinsic, extrinsic, scale=0.1)
             vis.add_geometry(line_set)
 
-    def save(self):
+    def save(self, save_path: Path) -> None:
         '''
         Saves the reconstructed scene into COLMAP format.
         '''
-        pass
+        if not hasattr(self, 'pcd'):
+            raise AttributeError("Point cloud is not reconstructed yet."
+                                 " Please run reconstruct() first.")
+        if not save_path.exists():
+            save_path.mkdir(parents=True)
+
+    def save_txt(self, save_path: Path):
+        '''
+        Saves the reconstructed scene into COLMAP TXT format.
+        '''
+        if not hasattr(self, 'pcd'):
+            raise AttributeError("Point cloud is not reconstructed yet."
+                                 " Please run reconstruct() first.")
+        if not save_path.exists():
+            save_path.mkdir(parents=True)
+        write_cameras_text(self.cameras, save_path / 'cameras.txt')
+        write_images_text(self.cameras, save_path / 'images.txt')
+        write_points3D_text(self.pcd, save_path / 'points3D.txt')
+        logger.info(f"Saved reconstructed scene to {save_path}")

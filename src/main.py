@@ -1,5 +1,6 @@
 import logging
 import time
+from pathlib import Path
 
 import hydra
 from omegaconf import DictConfig
@@ -37,7 +38,12 @@ def main(cfg: DictConfig) -> None:
     reconstruction.reconstruct()
     end = time.time()
     logger.info(f"Reconstruction took {end - start:.2f} seconds.")
-    reconstruction.visualize()
+    # reconstruction.visualize()
+    start = time.time()
+    logger.info("Saving reconstruction...")
+    reconstruction.save_txt(Path(cfg.output_dir))
+    end = time.time()
+    logger.info(f"Saving reconstruction took {end - start:.2f} seconds.")
 
 
 if __name__ == "__main__":

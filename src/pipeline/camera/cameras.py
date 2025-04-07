@@ -27,6 +27,27 @@ class Camera:
             cy=self.intrinsic[1, 2],
         )
 
+    def qvec(self) -> np.ndarray:
+        '''
+        Inspired by https://github.com/colmap/colmap/blob/f4a7e143a17b7a6b8a86406b82f60f3a2767c602/scripts/python/read_write_model.py#L546
+        '''
+        Rxx, Ryx, Rzx, \
+        Rxy, Ryy, Rzy, \
+        Rxz, Ryz, Rzz = self.extrinsic[:3, :3].flat
+        K = np.array([
+            [Rxx - Ryy - Rzz, 0, 0, 0],
+            [Ryx + Rxy, Ryy - Rxx - Rzz, 0, 0],
+            [Rzx + Rxz, Rzy + Ryz, Rzz - Rxx - Ryy, 0],
+            [Ryz - Rzy, Rzx - Rxz, Rxy - Ryx, Rxx + Ryy + Rzz]]) / 3.0
+        eigvals, eigvecs = np.linalg.eigh(K)
+        qvec = eigvecs[[3, 0, 1, 2], np.argmax(eigvals)]
+        if qvec[0] < 0:
+            qvec *= -1
+        return qvec
+    
+    def tvec(self) -> np.ndarray:
+        return self.extrinsic[:3, 3]
+
     @property
     def width(self) -> int:
         return self._width
