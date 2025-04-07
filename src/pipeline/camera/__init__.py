@@ -1,7 +1,7 @@
 from omegaconf import DictConfig
 
 from .arkit_cameras import ARKitCameraParser
-from .cameras import CameraParser, Camera  # noqa: F401
+from .cameras import Camera, CameraParser  # noqa: F401
 
 CAMERA_PARSERS = {
     "ARKitCameraParser": ARKitCameraParser,
