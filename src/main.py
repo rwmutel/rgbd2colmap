@@ -27,16 +27,17 @@ def main(cfg: DictConfig) -> None:
         logger.warning(f"Number of cameras ({len(cameras)}),"
                        f"images ({len(images)}), "
                        f"and depth maps ({len(depths)}) do not match.")
-    reconstruction = RGBDReconstruction(
-        cameras,
-        images,
-        depths,
-        **cfg.reconstruction)
-    logger.info(f"Successfully initialized RGBDReconstruction."
-                "Starting reconstruction...")
-    reconstruction.reconstruct()
-    logger.info("Reconstruction finished.")
-    reconstruction.visualize()
+    # reconstruction = RGBDReconstruction(
+    #     cameras,
+    #     images,
+    #     depths,
+    #     **cfg.reconstruction)
+    # logger.info(f"Successfully initialized RGBDReconstruction."
+    #             "Starting reconstruction...")
+    # reconstruction.reconstruct()
+    # logger.info("Reconstruction finished.")
+    # reconstruction.visualize()
+
 
 if __name__ == "__main__":
     main()
