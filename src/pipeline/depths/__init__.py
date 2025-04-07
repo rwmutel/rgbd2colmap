@@ -9,7 +9,7 @@ DEPTH_PARSERS = {
 }
 
 
-def get_depths(cfg: DictConfig) -> DepthsParser:
+def get_depth_parser(cfg: DictConfig) -> DepthsParser:
     '''
     Factory function for creating depth parsers based on the configuration.
     '''

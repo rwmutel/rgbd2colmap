@@ -8,7 +8,7 @@ CAMERA_PARSERS = {
 }
 
 
-def get_cameras(cfg: DictConfig) -> CameraParser:
+def get_camera_parser(cfg: DictConfig) -> CameraParser:
     '''
     Factory function for creating camera parsers based on the configuration.
     '''

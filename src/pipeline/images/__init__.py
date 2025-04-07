@@ -9,7 +9,7 @@ IMAGE_PARSERS = {
 }
 
 
-def get_images(cfg: DictConfig) -> ImageParser:
+def get_image_parser(cfg: DictConfig) -> ImageParser:
     '''
     Factory function for creating image parsers based on the configuration.
     '''
