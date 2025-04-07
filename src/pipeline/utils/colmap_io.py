@@ -33,6 +33,9 @@ from ..images import Image
 CAMERA_MODEL_NAME = "PINHOLE"
 CAMERA_MODEL_ID = 1
 
+MIN_TRACK_LENGTH_VIS = 3
+PLACEHOLDER_VALUE = 0.0
+
 
 # def write_next_bytes(fid, data, format_char_sequence, endian_character="<"):
 #     """pack and write to a binary file.
@@ -186,5 +189,11 @@ def write_points3D_text(points3D: o3d.geometry.PointCloud, path: Path | str):
             fid.write(" ".join(map(str, point_header)) + " ")
             track_strings = []
             # (image_id, point2D_id) is kept to preserve the format
-            track_strings.append(" ".join(map(str, [0, 0])))
+            # dirty hack with MIN_TRACK_LENGTH_VIS: COLMAP GUI 
+            # with default settings will only show points with 
+            # track length >= 3 (MIN_TRACK_LENGTH_VIS)
+            for i in range(MIN_TRACK_LENGTH_VIS):
+                track_strings.append(" ".join(
+                    map(str, [int(PLACEHOLDER_VALUE),
+                              int(PLACEHOLDER_VALUE)])))
             fid.write(" ".join(track_strings) + "\n")
