@@ -1,7 +1,7 @@
 from ..camera import Camera
 from ..images import Image
 from ..depths import Depth
-from typing import Dict
+from typing import Dict, Tuple
 import open3d as o3d
 import numpy as np
 import logging
@@ -26,8 +26,35 @@ class RGBDReconstruction:
         images: Dict[str | int, Image],
         depths: Dict[str | int, Depth],
     ):
-        self.cameras = cameras
+        self.target_width, self.target_height = self._get_image_shape(images)  # TODO: move into config, implement image rescaling as well as depth map
+        self.cameras = self._rescale_intrinsics(cameras)
         self.rgbds = self._combine_images_and_depths(images, depths)
+
+    def _rescale_intrinsics(
+        self,
+        cameras: Dict[str | int, Camera]
+    ) -> Dict[str | int, Camera]:
+        '''
+        Rescales camera intrinsics to match the target image size.
+        Assumes all cameras have the same intrinsic matrix.
+        '''
+        for camera in cameras.values():
+            if camera.width != self.target_width \
+               or camera.height != self.target_height:
+                camera.width = self.target_width
+                camera.height = self.target_height
+        return cameras
+
+    def _get_image_shape(
+        self,
+        images: Dict[str | int, Image]
+    ) -> Tuple[int, int]:
+        '''
+        Returns the shape of the first image in the dictionary.
+        Assumes all images have the same shape.
+        '''
+        first_image = next(iter(images.values()))
+        return first_image.shape[1], first_image.shape[0]
 
     def _combine_images_and_depths(
         self,
@@ -47,7 +74,7 @@ class RGBDReconstruction:
                 f"Mismatched keys: {set(images.keys()) - set(depths.keys())}")
         for key in tqdm(images.keys(), desc="Combining images and depths"):
             if key in depths:
-                depth_o3d = self._rescale_depth(images[key], depths[key])
+                depth_o3d = self._rescale_image(depths[key])
                 image_o3d = o3d.geometry.Image(images[key])
                 rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(
                     image_o3d,
@@ -61,19 +88,18 @@ class RGBDReconstruction:
                 logger.warning(f"Depth for image {key} not found.")
         return rgbds
 
-    @staticmethod
-    def _rescale_depth(image: Image, depth: Depth) -> o3d.geometry.Image:
+    def _rescale_image(self, image: Depth) -> o3d.geometry.Image:
         '''
         Rescales depth image to match the image shape.
         Assumes camera intrisics are given for the RGB image
         '''
-        depth = cv2.resize(
-            depth,
-            (image.shape[1], image.shape[0]),
+        image = cv2.resize(
+            image,
+            (self.target_width, self.target_height),
             interpolation=cv2.INTER_CUBIC,
         )
-        depth = o3d.geometry.Image(depth)
-        return depth
+        image = o3d.geometry.Image(image)
+        return image
 
     def reconstruct(self) -> o3d.geometry.PointCloud:
         '''
@@ -92,8 +118,7 @@ class RGBDReconstruction:
         pcd = o3d.geometry.PointCloud()
         for key, rgbd in tqdm(self.rgbds.items(), desc="Unprojecting depth"):
             camera = self.cameras[key]
-            width, height, _ = np.asarray(rgbd.color).shape
-            intrinsic = camera.get_o3d_intrinsic(width, height)
+            intrinsic = camera.get_o3d_intrinsic()
             extrinsic = camera.extrinsic
             pcd_temp = o3d.geometry.PointCloud.create_from_rgbd_image(
                 rgbd,

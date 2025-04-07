@@ -8,20 +8,34 @@ import open3d as o3d
 class Camera:
     intrinsic: np.ndarray  # 3x3 matrix
     extrinsic: np.ndarray  # 4x4 camera to world matrix
+    width: int | None
+    height: int | None
 
     def get_o3d_intrinsic(
         self,
-        width: int,
-        height: int
+        width: int = None,
+        height: int = None,
     ) -> o3d.camera.PinholeCameraIntrinsic:
         return o3d.camera.PinholeCameraIntrinsic(
-            width=width,
-            height=height,
+            width=width if width is not None else self.width,
+            height=height if height is not None else self.height,
             fx=self.intrinsic[0, 0],
             fy=self.intrinsic[1, 1],
             cx=self.intrinsic[0, 2],
             cy=self.intrinsic[1, 2],
         )
+    
+    @property.setter
+    def width(self, width: int):
+        if width != self.width:
+            self.intrinsic[0, 2] = width / 2
+        self.width = width
+    
+    @property.setter
+    def height(self, height: int):
+        if height != self.height:
+            self.intrinsic[1, 2] = height / 2
+        self.height = height
 
 
 
