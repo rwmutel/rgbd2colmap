@@ -9,8 +9,9 @@ from tqdm import tqdm
 from ..camera import Camera
 from ..depths import Depth
 from ..images import Image
-from ..utils.colmap_io import (write_cameras_text, write_images_text,
-                               write_points3D_text)
+from ..utils.colmap_io import (write_cameras_binary, write_cameras_text,
+                               write_images_binary, write_images_text,
+                               write_points3D_binary, write_points3D_text)
 
 logger = logging.getLogger(__name__)
 
@@ -178,6 +179,10 @@ class RGBDReconstruction:
                                  " Please run reconstruct() first.")
         if not save_path.exists():
             save_path.mkdir(parents=True)
+        write_cameras_binary(self.cameras, save_path / 'cameras.bin')
+        write_images_binary(self.cameras, save_path / 'images.bin')
+        write_points3D_binary(self.pcd, save_path / 'points3D.bin')
+        logger.info(f"Saved reconstructed scene to {save_path} (BIN)")
 
     def save_txt(self, save_path: Path):
         '''
@@ -191,4 +196,4 @@ class RGBDReconstruction:
         write_cameras_text(self.cameras, save_path / 'cameras.txt')
         write_images_text(self.cameras, save_path / 'images.txt')
         write_points3D_text(self.pcd, save_path / 'points3D.txt')
-        logger.info(f"Saved reconstructed scene to {save_path}")
+        logger.info(f"Saved reconstructed scene to {save_path} (TXT)")

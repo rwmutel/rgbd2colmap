@@ -43,7 +43,12 @@ def main(cfg: DictConfig) -> None:
     logger.info("Saving reconstruction...")
     reconstruction.save_txt(Path(cfg.output_dir))
     end = time.time()
-    logger.info(f"Saving reconstruction took {end - start:.2f} seconds.")
+    logger.info(f"Saving reconstruction (text) took {end - start:.2f} seconds.")
+    start = time.time()
+    logger.info("Saving reconstruction...")
+    reconstruction.save(Path(cfg.output_dir))
+    end = time.time()
+    logger.info(f"Saving reconstruction (binary) took {end - start:.2f} seconds.")
 
 
 if __name__ == "__main__":
