@@ -12,7 +12,7 @@ class DepthsParser:
     Subclasses must implement parse() method reading depth data
     from a source path with possibility of custom keyword arguments.
 
-    Depths values must be in milimeters for compatibility with open3d.
+    Depths values must be in meters for compatibility with open3d.
 
     Depths are stored in a dictionary and must have unique ids for
     further matching with cameras and images.

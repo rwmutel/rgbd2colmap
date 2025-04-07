@@ -23,6 +23,6 @@ class ARKitDepthParser(DepthsParser):
         for pose in data['poses']:
             depth_path = self.reconstruction_path / Path(pose['depth'])
             depth_id = int(Path(pose['image']).stem.split('_')[-1])
-            depth_map = np.loadtxt(depth_path, delimiter=',') * 1000
-            depths[depth_id] = depth_map.astype(np.int64)
+            depth_map = np.loadtxt(depth_path, delimiter=',', dtype=np.float32)
+            depths[depth_id] = depth_map
         return depths

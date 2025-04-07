@@ -2,12 +2,27 @@ from pathlib import Path
 import numpy as np
 from typing import Dict, Any, Iterable, Tuple
 from dataclasses import dataclass
-
+import open3d as o3d
 
 @dataclass
 class Camera:
     intrinsic: np.ndarray  # 3x3 matrix
     extrinsic: np.ndarray  # 4x4 camera to world matrix
+
+    def get_o3d_intrinsic(
+        self,
+        width: int,
+        height: int
+    ) -> o3d.camera.PinholeCameraIntrinsic:
+        return o3d.camera.PinholeCameraIntrinsic(
+            width=width,
+            height=height,
+            fx=self.intrinsic[0, 0],
+            fy=self.intrinsic[1, 1],
+            cx=self.intrinsic[0, 2],
+            cy=self.intrinsic[1, 2],
+        )
+
 
 
 class CameraParser:
