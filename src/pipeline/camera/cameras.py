@@ -8,8 +8,8 @@ import open3d as o3d
 class Camera:
     intrinsic: np.ndarray  # 3x3 matrix
     extrinsic: np.ndarray  # 4x4 camera to world matrix
-    width: int | None
-    height: int | None
+    _width: int | None = None
+    _height: int | None = None
 
     def get_o3d_intrinsic(
         self,
@@ -24,18 +24,26 @@ class Camera:
             cx=self.intrinsic[0, 2],
             cy=self.intrinsic[1, 2],
         )
-    
-    @property.setter
+
+    @property
+    def width(self) -> int:
+        return self._width
+
+    @width.setter
     def width(self, width: int):
-        if width != self.width:
+        if width != self._width:
             self.intrinsic[0, 2] = width / 2
-        self.width = width
-    
-    @property.setter
+        self._width = width
+
+    @property
+    def height(self) -> int:
+        return self._height
+
+    @height.setter
     def height(self, height: int):
-        if height != self.height:
+        if height != self._height:
             self.intrinsic[1, 2] = height / 2
-        self.height = height
+        self._height = height
 
 
 
