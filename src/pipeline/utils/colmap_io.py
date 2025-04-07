@@ -144,7 +144,10 @@ def write_images_text(
 
             points_strings = []
             # Single (point2D_x, point2D_y, pointID) to preserve colmap format
-            points_strings.append(" ".join(map(str, [0.0, 0.0, -1])))
+            points_strings.append(" ".join(
+                map(str, [PLACEHOLDER_VALUE,
+                          PLACEHOLDER_VALUE,
+                          int(PLACEHOLDER_VALUE)])))
             fid.write(" ".join(points_strings) + "\n")
 
 
@@ -174,7 +177,9 @@ def write_points3D_text(points3D: o3d.geometry.PointCloud, path: Path | str):
         void Reconstruction::ReadPoints3DText(const std::string& path)
         void Reconstruction::WritePoints3DText(const std::string& path)
     """
-    points3D = np.hstack((np.asarray(points3D.points), np.asarray(points3D.colors)))
+    points3D = np.hstack(
+        (np.asarray(points3D.points),
+         np.asarray(points3D.colors)))
     HEADER = (
         "# 3D point list with one line of data per point:\n"
         "#   POINT3D_ID, X, Y, Z, R, G, B, ERROR, TRACK[] as"
@@ -185,7 +190,9 @@ def write_points3D_text(points3D: o3d.geometry.PointCloud, path: Path | str):
         fid.write(HEADER)
         for pt_id, pt in enumerate(points3D):
             # reprojection error = 0 is kept to preserve the format
-            point_header = [pt_id, *pt[:3].tolist(), *(255*pt[3:6]).astype(np.int64).tolist(), 0]
+            point_header = [pt_id, *pt[:3].tolist(),
+                            *(255*pt[3:6]).astype(np.int64).tolist(),
+                            int(PLACEHOLDER_VALUE)]
             fid.write(" ".join(map(str, point_header)) + " ")
             track_strings = []
             # (image_id, point2D_id) is kept to preserve the format
