@@ -1,7 +1,7 @@
 from omegaconf import DictConfig
 
 from .arkit_images import ARKitImageParser
-from .images import ImageParser
+from .images import ImageParser, Image  # noqa: F401
 
 IMAGE_PARSERS = {
     "ARKitImageParser": ARKitImageParser,
