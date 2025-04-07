@@ -1,0 +1,7 @@
+reconstruction:
+  camera_parser:
+    name: ARKitCameraParser
+  image_parser:
+    name: ARKitImageParser
+  depth_parser:
+    name: ARKitDepthParser

@@ -1,0 +1,5 @@
+data
+misc
+__pycache__
+*.pyc
+outputs
