@@ -135,11 +135,31 @@ class RGBDReconstruction:
         # pcd = pcd.remove_duplicated_triangles()
         return pcd
 
-    def visualize(self):
+    def visualize(self) -> None:
         '''
         Visualizes the reconstructed scene using native Open3d viewer.
         '''
-        pass
+        if not hasattr(self, 'pcd'):
+            raise AttributeError("Point cloud is not reconstructed yet."
+                                 " Please run reconstruct() first.")
+        vis = o3d.visualization.Visualizer()
+        vis.create_window()
+        vis.add_geometry(self.pcd)
+        self._visualize_cameras(vis)
+        vis.run()
+        vis.destroy_window()
+
+    def _visualize_cameras(self, vis) -> None:
+        '''
+        Visualizes cameras in the Open3d viewer
+        using LineSet.create_camera_visualization.
+        '''
+        for camera in self.cameras.values():
+            intrinsic = camera.get_o3d_intrinsic()
+            extrinsic = camera.extrinsic
+            line_set = o3d.geometry.LineSet.create_camera_visualization(
+                intrinsic, extrinsic, scale=0.1)
+            vis.add_geometry(line_set)
 
     def save(self):
         '''

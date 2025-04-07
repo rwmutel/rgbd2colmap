@@ -35,7 +35,7 @@ def main(cfg: DictConfig) -> None:
     reconstruction.reconstruct()
     end = time.time()
     logger.info(f"Reconstruction took {end - start:.2f} seconds.")
-    # reconstruction.visualize()
+    reconstruction.visualize()
 
 
 if __name__ == "__main__":
