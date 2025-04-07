@@ -1,14 +1,16 @@
-from ..camera import Camera
-from ..images import Image
-from ..depths import Depth
-from typing import Dict, Tuple
-import open3d as o3d
-import numpy as np
 import logging
+from typing import Dict, Tuple
+
 import cv2
+import open3d as o3d
 from tqdm import tqdm
 
+from ..camera import Camera
+from ..depths import Depth
+from ..images import Image
+
 logger = logging.getLogger(__name__)
+
 
 class RGBDReconstruction:
     '''
@@ -26,7 +28,8 @@ class RGBDReconstruction:
         images: Dict[str | int, Image],
         depths: Dict[str | int, Depth],
     ):
-        self.target_width, self.target_height = self._get_image_shape(images)  # TODO: move into config, implement image rescaling as well as depth map
+        # TODO: move into config, implement image rescaling as well as depths
+        self.target_width, self.target_height = self._get_image_shape(images)
         self.cameras = self._rescale_intrinsics(cameras)
         self.rgbds = self._combine_images_and_depths(images, depths)
 
@@ -126,7 +129,8 @@ class RGBDReconstruction:
                 extrinsic,
             )
             pcd += pcd_temp
-            pcd = pcd.voxel_down_sample(voxel_size=0.05) # TODO: move into config
+            # TODO: move into config
+            pcd = pcd.voxel_down_sample(voxel_size=0.05)
         # possible additional processing steps
         # pcd = pcd.remove_non_finite_points()
         # pcd = pcd.remove_radius_outlier(nb_points=16, radius=0.05)

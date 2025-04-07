@@ -1,10 +1,11 @@
-from .images import ImageParser, Image
+import json
+import logging
 from pathlib import Path
 from typing import Dict
-import json
-import numpy as np
+
 import cv2
-import logging
+
+from .images import Image, ImageParser
 
 logger = logging.getLogger()
 

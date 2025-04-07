@@ -1,9 +1,11 @@
-from omegaconf import DictConfig, OmegaConf
-import hydra
 import logging
-from pathlib import Path
-from pipeline import RGBDReconstruction, get_camera_parser, get_image_parser, get_depth_parser
 import time
+
+import hydra
+from omegaconf import DictConfig
+
+from pipeline import (RGBDReconstruction, get_camera_parser, get_depth_parser,
+                      get_image_parser)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()

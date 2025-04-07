@@ -1,6 +1,7 @@
 from pathlib import Path
+from typing import Annotated, Any, Dict, Iterable, Tuple
+
 import numpy as np
-from typing import Dict, Any, Iterable, Tuple, Annotated
 
 Depth = Annotated[np.ndarray, "HxW array of depth values in millimeters"]
 

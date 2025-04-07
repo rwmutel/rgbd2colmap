@@ -1,8 +1,10 @@
-from .depths import DepthsParser, Depth
+import json
 from pathlib import Path
 from typing import Dict
-import json
+
 import numpy as np
+
+from .depths import Depth, DepthsParser
 
 
 class ARKitDepthParser(DepthsParser):

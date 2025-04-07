@@ -1,7 +1,7 @@
-from .images import ImageParser, Image
-from .arkit_images import ARKitImageParser
 from omegaconf import DictConfig
 
+from .arkit_images import ARKitImageParser
+from .images import ImageParser
 
 IMAGE_PARSERS = {
     "ARKitImageParser": ARKitImageParser,

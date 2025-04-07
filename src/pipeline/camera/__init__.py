@@ -1,6 +1,7 @@
-from .cameras import CameraParser, Camera
-from .arkit_cameras import ARKitCameraParser
 from omegaconf import DictConfig
+
+from .arkit_cameras import ARKitCameraParser
+from .cameras import CameraParser
 
 CAMERA_PARSERS = {
     "ARKitCameraParser": ARKitCameraParser,

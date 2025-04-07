@@ -1,8 +1,10 @@
-from pathlib import Path
-import numpy as np
-from typing import Dict, Any, Iterable, Tuple
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, Iterable, Tuple
+
+import numpy as np
 import open3d as o3d
+
 
 @dataclass
 class Camera:
@@ -46,7 +48,6 @@ class Camera:
         self._height = height
 
 
-
 class CameraParser:
     '''
     Base class for camera parsers.
@@ -67,7 +68,7 @@ class CameraParser:
     def parse(path: Path, **kwargs: Dict[str, Any]) -> Dict[str | int, Camera]:
         '''
         Parses values from a source path.
-        
+
         Args:
             path (Path): Path to the source data.
             **kwargs (Dict[str, Any]): Additional keyword arguments.

@@ -1,7 +1,7 @@
-from .depths import DepthsParser, Depth
-from .arkit_depths import ARKitDepthParser
 from omegaconf import DictConfig
 
+from .arkit_depths import ARKitDepthParser
+from .depths import DepthsParser
 
 DEPTH_PARSERS = {
     "ARKitDepthParser": ARKitDepthParser,

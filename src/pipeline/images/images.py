@@ -1,7 +1,7 @@
-import numpy as np
-
-from typing import Dict, Any, Iterable, Tuple, Annotated
 from pathlib import Path
+from typing import Annotated, Any, Dict, Iterable, Tuple
+
+import numpy as np
 
 Image = Annotated[np.ndarray, "HxWxC array of RGB values in 0-255 range"]
 
