@@ -24,6 +24,7 @@ import struct
 from pathlib import Path
 from typing import Dict, Tuple
 
+import cv2
 import numpy as np
 import open3d as o3d
 
@@ -92,7 +93,11 @@ def write_cameras_text(cameras: Dict[int | str, Camera], path: Path | str):
             fid.write(line + "\n")
 
 
-def write_images_binary(cameras: Dict[int | str, Camera], path: Path | str):
+def write_images_binary(
+    cameras: Dict[int | str, Camera],
+    images: Dict[int | str, Image],
+    path: Path | str
+):
     """
     see: src/colmap/scene/reconstruction.cc
         void Reconstruction::ReadImagesBinary(const std::string& path)
@@ -105,7 +110,7 @@ def write_images_binary(cameras: Dict[int | str, Camera], path: Path | str):
             write_next_bytes(fid, (cam.qvec()).tolist(), "dddd")
             write_next_bytes(fid, (cam.tvec()).tolist(), "ddd")
             write_next_bytes(fid, cam_id, "i")
-            for char in f"{cam_id:05d}.jpg":  # TODO another hardcoded value
+            for char in images[cam_id].path.name:
                 write_next_bytes(fid, char.encode("utf-8"), "c")
             write_next_bytes(fid, b"\x00", "c")
             point3D_ids = [int(PLACEHOLDER_VALUE)]
@@ -117,6 +122,7 @@ def write_images_binary(cameras: Dict[int | str, Camera], path: Path | str):
 
 def write_images_text(
     cameras: Dict[int | str, Camera],
+    images: Dict[int | str, Image],
     path: Path | str
 ):
     """
@@ -140,7 +146,7 @@ def write_images_text(
                 *(cam.qvec()).tolist(),
                 *(cam.tvec()).tolist(),
                 key,
-                f"{key:05d}.jpg",  # TODO: this is an awful hardcode
+                images[key].path.name,
             ]
             first_line = " ".join(map(str, image_header))
             fid.write(first_line + "\n")
@@ -213,3 +219,15 @@ def write_points3D_text(points3D: o3d.geometry.PointCloud, path: Path | str):
                     map(str, [int(PLACEHOLDER_VALUE),
                               int(PLACEHOLDER_VALUE)])))
             fid.write(" ".join(track_strings) + "\n")
+
+
+def copy_images(images: Dict[int | str, Image], dst_dir: Path):
+    """
+    Copy reconstruction's images to 'images' foolder
+    for compatibility with GS COLMAP reader.
+    """
+    if not dst_dir.exists():
+        dst_dir.mkdir()
+    for image in images.values():
+        dst_image_path = dst_dir / image.path.name
+        cv2.imwrite(str(dst_image_path), image.image_np)

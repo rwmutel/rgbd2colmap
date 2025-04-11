@@ -28,10 +28,10 @@ class ARKitImageParser(ImageParser):
         for pose in data['poses']:
             image_path = self.reconstruction_path / Path(pose['image'])
             image_id = int(Path(pose['image']).stem.split('_')[-1])
-            image = cv2.imread(str(image_path))
-            if image is None:
-                logger.warning(f"Image not found at {image_path}")
+            image_np = cv2.imread(str(image_path))
+            if image_np is None:
+                logger.warning(f"Image not found or error loading {image_path}")
                 continue
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            images[image_id] = image
+            image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
+            images[image_id] = Image(path=image_path, image_np=image_np)
         return images

@@ -1,9 +1,21 @@
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, Any, Dict, Iterable, Tuple
+from typing import Any, Dict, Iterable, Tuple
 
 import numpy as np
 
-Image = Annotated[np.ndarray, "HxWxC array of RGB values in 0-255 range"]
+
+@dataclass
+class Image:
+    '''
+    Image class representing a single image with its id and path.
+
+    Attributes:
+        path (Path | str): Path to the image file.
+        image (np.ndarray): HxWxC array of RGB values in 0-255 range
+    '''
+    path: Path | str
+    image_np: np.ndarray
 
 
 class ImageParser:

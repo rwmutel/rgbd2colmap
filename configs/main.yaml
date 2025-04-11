@@ -1,12 +1,12 @@
 reconstruction:
   camera_parser:
     name: ARKitCameraParser
-    source_path: ./data/office26_89C7C314-D858-478B-97C2-8E07DEBA0C50/scan_output/camera_poses_89C7C314-D858-478B-97C2-8E07DEBA0C50.json
+    source_path: ./data/It-Jim/office26_89C7C314-D858-478B-97C2-8E07DEBA0C50/scan_output/camera_poses_89C7C314-D858-478B-97C2-8E07DEBA0C50.json
   image_parser:
     name: ARKitImageParser
-    source_path: ./data/office26_89C7C314-D858-478B-97C2-8E07DEBA0C50/scan_output/camera_poses_89C7C314-D858-478B-97C2-8E07DEBA0C50.json
+    source_path: ./data/It-Jim/office26_89C7C314-D858-478B-97C2-8E07DEBA0C50/scan_output/camera_poses_89C7C314-D858-478B-97C2-8E07DEBA0C50.json
   depth_parser:
     name: ARKitDepthParser
-    source_path: ./data/office26_89C7C314-D858-478B-97C2-8E07DEBA0C50/scan_output/camera_poses_89C7C314-D858-478B-97C2-8E07DEBA0C50.json
+    source_path: ./data/It-Jim/office26_89C7C314-D858-478B-97C2-8E07DEBA0C50/scan_output/camera_poses_89C7C314-D858-478B-97C2-8E07DEBA0C50.json
 
-output_dir: ./data/office26_89C7C314-D858-478B-97C2-8E07DEBA0C50/rgbd_recon/
+output_dir: ./data/It-Jim/office26_89C7C314-D858-478B-97C2-8E07DEBA0C50/rgbd_recon/

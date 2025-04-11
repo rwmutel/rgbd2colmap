@@ -27,10 +27,10 @@ class MushroomImageParser(ImageParser):
             if image_file.suffix not in [".jpg", ".png", ".jpeg"]:
                 continue
             image_id = image_file.stem
-            image = cv2.imread(str(image_file))
-            if image is None:
-                logger.warning(f"Error loading {str(image_file)}")
+            image_np = cv2.imread(str(image_file))
+            if image_np is None:
+                logger.warning(f"Error loading {image_np}")
                 continue
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            images[image_id] = image
+            image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
+            images[image_id] = Image(path=image_file, image_np=image_np)
         return images

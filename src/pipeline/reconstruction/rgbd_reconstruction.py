@@ -9,9 +9,10 @@ from tqdm import tqdm
 from ..camera import Camera
 from ..depths import Depth
 from ..images import Image
-from ..utils.colmap_io import (write_cameras_binary, write_cameras_text,
-                               write_images_binary, write_images_text,
-                               write_points3D_binary, write_points3D_text)
+from ..utils.colmap_io import (copy_images, write_cameras_binary,
+                               write_cameras_text, write_images_binary,
+                               write_images_text, write_points3D_binary,
+                               write_points3D_text)
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,7 @@ class RGBDReconstruction:
         Assumes all images have the same shape.
         '''
         first_image = next(iter(images.values()))
-        return first_image.shape[1], first_image.shape[0]
+        return first_image.image_np.shape[1], first_image.image_np.shape[0]
 
     def _combine_images_and_depths(
         self,
@@ -82,8 +83,8 @@ class RGBDReconstruction:
                 f"Mismatched keys: {set(images.keys()) - set(depths.keys())}")
         for key in tqdm(images.keys(), desc="Combining images and depths"):
             if key in depths:
-                depth_o3d = self._rescale_image(depths[key])
-                image_o3d = o3d.geometry.Image(images[key])
+                depth_o3d = self._rescale_depth(depths[key])
+                image_o3d = o3d.geometry.Image(images[key].image_np)
                 rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(
                     image_o3d,
                     depth_o3d,
@@ -96,18 +97,18 @@ class RGBDReconstruction:
                 logger.warning(f"Depth for image {key} not found.")
         return rgbds
 
-    def _rescale_image(self, image: Depth) -> o3d.geometry.Image:
+    def _rescale_depth(self, depth: Depth) -> o3d.geometry.Image:
         '''
         Rescales depth image to match the image shape.
         Assumes camera intrisics are given for the RGB image
         '''
-        image = cv2.resize(
-            image,
+        depth = cv2.resize(
+            depth,
             (self.target_width, self.target_height),
             interpolation=cv2.INTER_CUBIC,
         )
-        image = o3d.geometry.Image(image)
-        return image
+        depth = o3d.geometry.Image(depth)
+        return depth
 
     def reconstruct(self) -> o3d.geometry.PointCloud:
         '''
@@ -173,27 +174,33 @@ class RGBDReconstruction:
     def save(self, save_path: Path) -> None:
         '''
         Saves the reconstructed scene into COLMAP format.
+        Copies images to 'images' folder of reconstruction.
         '''
         if not hasattr(self, 'pcd'):
             raise AttributeError("Point cloud is not reconstructed yet."
                                  " Please run reconstruct() first.")
-        if not save_path.exists():
-            save_path.mkdir(parents=True)
-        write_cameras_binary(self.cameras, save_path / 'cameras.bin')
-        write_images_binary(self.cameras, save_path / 'images.bin')
-        write_points3D_binary(self.pcd, save_path / 'points3D.bin')
+        sparse_path = save_path / 'sparse' / '0'
+        if not sparse_path.exists():
+            sparse_path.mkdir(parents=True,  exist_ok=True)
+        copy_images(self.images, save_path / 'images')
+        write_cameras_binary(self.cameras, sparse_path / 'cameras.bin')
+        write_images_binary(self.cameras, self.images, sparse_path / 'images.bin')
+        write_points3D_binary(self.pcd, sparse_path / 'points3D.bin')
         logger.info(f"Saved reconstructed scene to {save_path} (BIN)")
 
     def save_txt(self, save_path: Path):
         '''
         Saves the reconstructed scene into COLMAP TXT format.
+        Copies images to 'images' folder of reconstruction.
         '''
         if not hasattr(self, 'pcd'):
             raise AttributeError("Point cloud is not reconstructed yet."
                                  " Please run reconstruct() first.")
-        if not save_path.exists():
-            save_path.mkdir(parents=True)
-        write_cameras_text(self.cameras, save_path / 'cameras.txt')
-        write_images_text(self.cameras, save_path / 'images.txt')
-        write_points3D_text(self.pcd, save_path / 'points3D.txt')
+        sparse_path = save_path / 'sparse' / '0'
+        if not sparse_path.exists():
+            sparse_path.mkdir(parents=True, exist_ok=True)
+        copy_images(self.images, save_path / 'images')
+        write_cameras_text(self.cameras, sparse_path / 'cameras.txt')
+        write_images_text(self.cameras, self.images, sparse_path / 'images.txt')
+        write_points3D_text(self.pcd, sparse_path / 'points3D.txt')
         logger.info(f"Saved reconstructed scene to {save_path} (TXT)")
