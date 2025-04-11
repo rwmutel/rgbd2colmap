@@ -1,10 +1,12 @@
 from omegaconf import DictConfig
 
 from .arkit_images import ARKitImageParser
+from .mushroom_images import MushroomImageParser
 from .images import Image, ImageParser  # noqa: F401
 
 IMAGE_PARSERS = {
     "ARKitImageParser": ARKitImageParser,
+    "MushroomImageParser": MushroomImageParser,
     # Add other image parsers here as needed
 }
 
