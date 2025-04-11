@@ -13,7 +13,6 @@ class MushroomCameraParser(CameraParser):
     https://xuqianren.github.io/publications/MuSHRoom/
     '''
     def __init__(self, source_path: str):
-        self.reconstruction_path = Path(source_path).parent.parent
         super().__init__(source_path)
 
     def parse(self, path: Path) -> Dict[int, Camera]:

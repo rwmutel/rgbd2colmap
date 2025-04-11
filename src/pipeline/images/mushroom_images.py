@@ -16,7 +16,6 @@ class MushroomImageParser(ImageParser):
     https://xuqianren.github.io/publications/MuSHRoom/
     '''
     def __init__(self, source_path: str):
-        self.reconstruction_path = Path(source_path).parent.parent
         super().__init__(Path(source_path))
 
     def parse(self, path: Path) -> Dict[int, Image]:
