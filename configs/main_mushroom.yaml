@@ -1,0 +1,12 @@
+reconstruction:
+  camera_parser:
+    name: MushroomCameraParser
+    source_path: ./data/MuSHRoom/room_datasets/classroom/iphone/short_capture/transformations.json
+  image_parser:
+    name: MushroomImageParser
+    source_path: ./data/MuSHRoom/room_datasets/classroom/iphone/short_capture/images
+  depth_parser:
+    name: MushroomDepthParser
+    source_path: ./data/MuSHRoom/room_datasets/classroom/iphone/short_capture/depths
+
+output_dir: ./data/office26_89C7C314-D858-478B-97C2-8E07DEBA0C50/sparse/0
