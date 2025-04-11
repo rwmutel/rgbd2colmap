@@ -7,6 +7,18 @@ import numpy as np
 from .cameras import Camera, CameraParser
 
 
+# same as ARKit fix. MuSHRoom uses polycam for iphone capture
+# https://github.com/TUTvision/MuSHRoom/blob/main/README.md#data-structure
+# https://github.com/PolyCam/polyform?tab=readme-ov-file#cameras
+# https://developer.apple.com/documentation/arkit/arconfiguration/worldalignment-swift.enum/gravity
+POLYCAM_FIX = np.array([
+    [1, 0, 0, 0],
+    [0, -1, 0, 0],
+    [0, 0, -1, 0],
+    [0, 0, 0, 1]
+], dtype=np.float32)
+
+
 class MushroomCameraParser(CameraParser):
     '''
     Camera parser for MuSHRoom dataset.
@@ -29,7 +41,7 @@ class MushroomCameraParser(CameraParser):
                 [0, pose["fl_y"], pose["cy"]],
                 [0, 0, 1]
             ], dtype=np.float32)
-            extrinsics = np.array(pose['transform_matrix'])
+            extrinsics = np.array(pose['transform_matrix']) @ POLYCAM_FIX
             extrinsics = np.linalg.inv(extrinsics)
             cameras[camera_id] = Camera(intrinsics, extrinsics)
         return cameras
