@@ -1,8 +1,8 @@
 from omegaconf import DictConfig
 
 from .arkit_depths import ARKitDepthParser
-from .mushroom_depths import MushroomDepthParser
 from .depths import Depth, DepthsParser  # noqa: F401
+from .mushroom_depths import MushroomDepthParser
 
 DEPTH_PARSERS = {
     "ARKitDepthParser": ARKitDepthParser,
