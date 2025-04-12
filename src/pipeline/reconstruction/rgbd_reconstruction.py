@@ -59,8 +59,8 @@ class RGBDReconstruction:
             self.target_width, self.target_height = parameters.target_image_size
         else:
             self.target_width, self.target_height = self._get_image_shape(images)
-        self.images = self._rescale_images(images)
         self.cameras = self._rescale_intrinsics(cameras)
+        self.images = self._rescale_images(images)
         self.rgbds = self._combine_images_and_depths(images, depths)
 
     def _rescale_intrinsics(
@@ -71,11 +71,14 @@ class RGBDReconstruction:
         Rescales camera intrinsics to match the target image size.
         Assumes all cameras have the same intrinsic matrix.
         '''
+        original_width, original_height = self._get_image_shape(self.images)
         for camera in cameras.values():
             if camera.width != self.target_width \
                or camera.height != self.target_height:
                 camera.width = self.target_width
                 camera.height = self.target_height
+                camera.intrinsics[0, :] *= self.target_width / original_width
+                camera.intrinsics[1, :] *= self.target_height / original_height
         return cameras
 
     def _get_image_shape(
