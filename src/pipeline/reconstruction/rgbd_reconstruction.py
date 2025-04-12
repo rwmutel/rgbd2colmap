@@ -23,16 +23,27 @@ logger = logging.getLogger(__name__)
 class RGBDReconstructionParams:
     '''
     Parameters for RGBD reconstruction parsed from OmegaConf config.
+
+    Attributes:
+        target_image_size (Tuple[int, int]): Target image size for resizing.
+        voxel_size (float): Voxel size for downsampling point cloud.
+        max_depth (float): Maximum depth for depth truncation.
+        icp_registration (bool): Whether to use ICP registration.
+          + relative_fitness (float): Relative fitness for ICP registration.
+          + relative_rmse (float): Relative RMSE for ICP registration.
+          + max_iterations (int): Maximum iterations for ICP registration.
+        skip_n (int): Stride when sampling images for reconstruction.
     '''
     def __init__(self, cfg: DictConfig):
-        self.target_image_size = cfg.target_image_size if 'target_image_size' in cfg else None
-        self.voxel_size = cfg.voxel_size if 'voxel_size' in cfg else 0.05
-        self.max_depth = cfg.max_depth if 'max_depth' in cfg else 1000.0
-        self.icp_registration = 'icp_registration' in cfg and cfg.icp_registration
+        self.target_image_size = cfg.get('target_image_size', None)
+        self.voxel_size = cfg.get('voxel_size', 0.05)
+        self.max_depth = cfg.get("max_depth", 1000.0)
+        self.skip_n = cfg.get('skip_n', 1)
+        self.icp_registration = cfg.get('icp_registration', False)
         if self.icp_registration:
-            self.relative_fitness = cfg.relative_fitness if 'relative_fitness' in cfg else 1e-6
-            self.relative_rmse = cfg.relative_rmse if 'relative_rmse' in cfg else 1e-6
-            self.max_iterations = cfg.max_iterations if 'max_iterations' in cfg else 30
+            self.relative_fitness = cfg.icp_registration.get("relative_fitness", 1e-6)
+            self.relative_rmse = cfg.icp_registration.get("relative_rmse", 1e-6)
+            self.max_iterations = cfg.icp_registration.get("max_iterations", 30)
 
 
 class RGBDReconstruction:
@@ -61,7 +72,23 @@ class RGBDReconstruction:
             self.target_width, self.target_height = self._get_image_shape(images)
         self.cameras = self._rescale_intrinsics(cameras, *self._get_image_shape(images))
         self.images = self._rescale_images(images)
-        self.rgbds = self._combine_images_and_depths(images, depths)
+        self.depths = depths
+        self._match_and_downsample()
+        self.rgbds = self._combine_images_and_depths(self.images, self.depths)
+
+    def _match_and_downsample(self) -> None:
+        '''
+        Downsamples images and depths by skipping every n-th image
+        '''
+        matched_keys = set(self.images.keys())\
+            .intersection(self.depths.keys())\
+            .intersection(self.cameras.keys())
+        keys = sorted(matched_keys)[::self.parameters.skip_n]
+        self.images = {k: self.images[k] for k in keys}
+        self.cameras = {k: self.cameras[k] for k in keys}
+        self.depths = {k: self.depths[k] for k in keys}
+        logger.info("Matched (and downsampled) images and depths to "
+                    f"{len(self.images)} frames ({self.parameters.skip_n} stride)")
 
     def _rescale_intrinsics(
         self,
@@ -103,12 +130,6 @@ class RGBDReconstruction:
         using the same keys for both.
         '''
         rgbds = {}
-        if set(images.keys()) != set(depths.keys()):
-            logger.warning(
-                "Images and depths do not match."
-                "Only matching keys will be used.")
-            logger.warning(
-                f"Mismatched keys: {set(images.keys()) - set(depths.keys())}")
         for key in tqdm(images.keys(), desc="Combining images and depths"):
             if key in depths:
                 depth_o3d = self._rescale_depth(depths[key])
@@ -184,7 +205,13 @@ class RGBDReconstruction:
             pcd_temp = pcd_temp.voxel_down_sample(
                 voxel_size=self.parameters.voxel_size)
             if self.parameters.icp_registration and len(pcd.points) > 0:
-                icp_transform = self._get_icp_transform(pcd, pcd_temp)
+                try:
+                    icp_transform = self._get_icp_transform(pcd, pcd_temp)
+                    pcd_temp.transform(icp_transform)
+                    camera.extrinsic = camera.extrinsic @ np.linalg.inv(icp_transform)
+                except RuntimeError as e:
+                    logger.warning(f"ICP registration failed for {key}: {e}")
+                    continue
 
                 # print(icp_transform)
                 # intrinsic = camera.get_o3d_intrinsic(self.target_width, self.target_height)
@@ -205,8 +232,6 @@ class RGBDReconstruction:
                 # vis.run()
                 # vis.destroy_window()
 
-                pcd_temp.transform(icp_transform)
-                camera.extrinsic = camera.extrinsic @ np.linalg.inv(icp_transform)
             pcd += pcd_temp
 
         # TODO possible additional processing steps
