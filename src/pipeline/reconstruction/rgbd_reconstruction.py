@@ -241,7 +241,6 @@ class RGBDReconstruction:
                 relative_fitness=self.parameters.relative_rmse,
                 relative_rmse=self.parameters.relative_rmse,
                 max_iteration=self.parameters.max_iterations))
-        logger.info(f"ICP registration result: {result_icp}")
         return result_icp.transformation
 
     def visualize(self) -> None:
