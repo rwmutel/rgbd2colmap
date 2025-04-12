@@ -1,9 +1,12 @@
 import logging
 from pathlib import Path
 from typing import Dict, Tuple
+import copy
 
 import cv2
 import open3d as o3d
+import numpy as np
+from omegaconf import DictConfig
 from tqdm import tqdm
 
 from ..camera import Camera
@@ -49,10 +52,15 @@ class RGBDReconstruction:
         depths: Dict[str | int, Depth],
         parameters: RGBDReconstructionParams | DictConfig,
     ):
-        # TODO: move into config, implement image rescaling as well as depths
-        self.target_width, self.target_height = self._get_image_shape(images)
+        if isinstance(parameters, DictConfig):
+            parameters = RGBDReconstructionParams(parameters)
+        self.parameters = parameters
+        if parameters.target_image_size is not None:
+            self.target_width, self.target_height = parameters.target_image_size
+        else:
+            self.target_width, self.target_height = self._get_image_shape(images)
+        self.images = self._rescale_images(images)
         self.cameras = self._rescale_intrinsics(cameras)
-        self.images = images
         self.rgbds = self._combine_images_and_depths(images, depths)
 
     def _rescale_intrinsics(
@@ -75,7 +83,7 @@ class RGBDReconstruction:
         images: Dict[str | int, Image]
     ) -> Tuple[int, int]:
         '''
-        Returns the shape of the first image in the dictionary.
+        Returns width and height of the first image in the dictionary.
         Assumes all images have the same shape.
         '''
         first_image = next(iter(images.values()))
@@ -105,7 +113,7 @@ class RGBDReconstruction:
                     image_o3d,
                     depth_o3d,
                     depth_scale=1.0,
-                    depth_trunc=1000.0,
+                    depth_trunc=self.parameters.max_depth,
                     convert_rgb_to_intensity=False,
                 )
                 rgbds[key] = rgbd
@@ -125,6 +133,25 @@ class RGBDReconstruction:
         )
         depth = o3d.geometry.Image(depth)
         return depth
+
+    def _rescale_images(
+        self,
+        images: Dict[str | int, Image]
+    ) -> Dict[str | int, Image]:
+        '''
+        Rescales images to match the target image size.
+        Assumes all images have the same shape.
+        '''
+        for key, image in images.items():
+            image_height, image_width, _ = image.image_np.shape
+            if image_width != self.target_width \
+               or image_height != self.target_height:
+                image.image_np = cv2.resize(
+                    image.image_np,
+                    (self.target_width, self.target_height),
+                    interpolation=cv2.INTER_CUBIC,
+                )
+        return images
 
     def reconstruct(self) -> o3d.geometry.PointCloud:
         '''
