@@ -21,7 +21,7 @@ class MushroomDepthParser(DepthsParser):
         Parses and rescales ARKit depths from json log
         '''
         depths = {}
-        for depth_file in path.iterdir():
+        for depth_file in sorted(path.iterdir()):
             if depth_file.suffix != '.png':
                 continue
             depth_id = depth_file.stem

@@ -23,7 +23,7 @@ class MushroomImageParser(ImageParser):
         Parses images related to ARKit reconstruction from json log
         '''
         images = {}
-        for image_file in path.iterdir():
+        for image_file in sorted(path.iterdir()):
             if image_file.suffix not in [".jpg", ".png", ".jpeg"]:
                 continue
             image_id = image_file.stem

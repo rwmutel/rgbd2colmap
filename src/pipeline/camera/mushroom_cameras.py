@@ -44,4 +44,7 @@ class MushroomCameraParser(CameraParser):
             extrinsics = np.array(pose['transform_matrix']) @ POLYCAM_FIX
             extrinsics = np.linalg.inv(extrinsics)
             cameras[camera_id] = Camera(intrinsics, extrinsics)
+        # sort cameras by id to have adjacent frames
+        cameras = dict(sorted(cameras.items(),
+                              key=lambda item: int(item[0].split("_")[-1])))
         return cameras
