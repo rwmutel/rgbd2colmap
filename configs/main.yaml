@@ -1,4 +1,12 @@
 reconstruction:
+  parameters:
+    # target_image_size: [640, 480]
+    voxel_downsample_size: 0.05
+    icp_registration:
+      max_iterations: 50
+      relative_rmse: 1e-6
+    skip_n: 1
+    max_depth: 5.0
   camera_parser:
     name: ARKitCameraParser
     source_path: ./data/It-Jim/office26_89C7C314-D858-478B-97C2-8E07DEBA0C50/scan_output/camera_poses_89C7C314-D858-478B-97C2-8E07DEBA0C50.json

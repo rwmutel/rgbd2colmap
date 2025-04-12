@@ -1,4 +1,11 @@
 reconstruction:
+  parameters:
+    voxel_downsample_size: 0.05
+    icp_registration:
+      max_iterations: 50
+      relative_rmse: 1e-6
+    skip_n: 1
+    max_depth: 6.0
   camera_parser:
     name: MushroomCameraParser
     source_path: ./data/MuSHRoom/room_datasets/classroom/iphone/short_capture/transformations.json

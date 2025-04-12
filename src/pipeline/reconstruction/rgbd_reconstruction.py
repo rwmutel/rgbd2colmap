@@ -17,6 +17,21 @@ from ..utils.colmap_io import (copy_images, write_cameras_binary,
 logger = logging.getLogger(__name__)
 
 
+class RGBDReconstructionParams:
+    '''
+    Parameters for RGBD reconstruction parsed from OmegaConf config.
+    '''
+    def __init__(self, cfg: DictConfig):
+        self.target_image_size = cfg.target_image_size if 'target_image_size' in cfg else None
+        self.voxel_size = cfg.voxel_size if 'voxel_size' in cfg else 0.05
+        self.max_depth = cfg.max_depth if 'max_depth' in cfg else 1000.0
+        self.icp_registration = 'icp_registration' in cfg and cfg.icp_registration
+        if self.icp_registration:
+            self.relative_fitness = cfg.relative_fitness if 'relative_fitness' in cfg else 1e-6
+            self.relative_rmse = cfg.relative_rmse if 'relative_rmse' in cfg else 1e-6
+            self.max_iterations = cfg.max_iterations if 'max_iterations' in cfg else 30
+
+
 class RGBDReconstruction:
     '''
     Class that agregates cameras, images and depths
@@ -32,6 +47,7 @@ class RGBDReconstruction:
         cameras: Dict[str | int, Camera],
         images: Dict[str | int, Image],
         depths: Dict[str | int, Depth],
+        parameters: RGBDReconstructionParams | DictConfig,
     ):
         # TODO: move into config, implement image rescaling as well as depths
         self.target_width, self.target_height = self._get_image_shape(images)

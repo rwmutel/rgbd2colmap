@@ -23,15 +23,17 @@ def main(cfg: DictConfig) -> None:
     # logger.info(f"Configuration: \n{OmegaConf.to_yaml(cfg)}")
     cameras = get_camera_parser(cfg.reconstruction.camera_parser).cameras
     logger.info(f"Successfully loaded {len(cameras)} cameras")
-    images = get_image_parser(cfg.reconstruction.image_parser).images
-    logger.info(f"Successfully loaded {len(images)} images")
     depths = get_depth_parser(cfg.reconstruction.depth_parser).depths
     logger.info(f"Successfully loaded {len(depths)} depth maps")
+    images = get_image_parser(cfg.reconstruction.image_parser).images
+    logger.info(f"Successfully loaded {len(images)} images")
     if not len(cameras) == len(images) == len(depths):
         logger.warning(f"Number of cameras ({len(cameras)}),"
                        f"images ({len(images)}), "
                        f"and depth maps ({len(depths)}) do not match.")
-    reconstruction = RGBDReconstruction(cameras, images, depths)
+    reconstruction = RGBDReconstruction(
+        cameras, images, depths,
+        cfg.reconstruction.parameters)
     logger.info("Successfully initialized RGBDReconstruction.")
     logger.info("Starting reconstruction...")
     start = time.time()
