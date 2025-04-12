@@ -177,16 +177,58 @@ class RGBDReconstruction:
                 intrinsic,
                 extrinsic,
             )
+            pcd = pcd.voxel_down_sample(
+                voxel_size=self.parameters.voxel_size)
+            pcd_temp = pcd_temp.voxel_down_sample(
+                voxel_size=self.parameters.voxel_size)
+            if self.parameters.icp_registration and len(pcd.points) > 0:
+                extrinsic = self._get_icp_transform(pcd, pcd_temp)
+                pcd_temp.transform(extrinsic)
+
+                # print(extrinsic)
+                # vis = o3d.visualization.Visualizer()
+                # vis.create_window()
+                # vis.add_geometry(copy.deepcopy(pcd).paint_uniform_color([0, 1, 0]))
+                # vis.add_geometry(copy.deepcopy(pcd_temp).paint_uniform_color([1, 0, 0]))
+                # vis.add_geometry(copy.deepcopy(pcd_temp.transform(extrinsic).paint_uniform_color([0, 0, 1])))
+                # vis.run()
+                # vis.destroy_window()
             pcd += pcd_temp
-            # TODO: move into config
-            pcd = pcd.voxel_down_sample(voxel_size=0.05)
-        # possible additional processing steps
+
+        # TODO possible additional processing steps
         # pcd = pcd.remove_non_finite_points()
         # pcd = pcd.remove_radius_outlier(nb_points=16, radius=0.05)
         # pcd = pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
         # pcd = pcd.remove_duplicated_points()
         # pcd = pcd.remove_duplicated_triangles()
         return pcd
+
+    def _get_icp_transform(
+        self,
+        global_pcd: o3d.geometry.PointCloud,
+        registring_pcd: o3d.geometry.PointCloud
+    ) -> o3d.geometry.PointCloud:
+        '''
+        Registers point cloud using ICP colored registration.
+        Returns the adjusting transformation for registring_pcd
+        to align with global_pcd.
+        https://www.open3d.org/docs/release/tutorial/pipelines/colored_pointcloud_registration.html
+        https://openaccess.thecvf.com/content_ICCV_2017/papers/Park_Colored_Point_Cloud_ICCV_2017_paper.pdf
+        '''
+        for pcd in [global_pcd, registring_pcd]:
+            if not pcd.has_normals():
+                pcd.estimate_normals(
+                    o3d.geometry.KDTreeSearchParamHybrid(
+                        radius=self.parameters.voxel_size * 2, max_nn=30))
+        result_icp = o3d.pipelines.registration.registration_colored_icp(
+            registring_pcd, global_pcd, self.parameters.voxel_size, np.eye(4),
+            o3d.pipelines.registration.TransformationEstimationForColoredICP(),
+            o3d.pipelines.registration.ICPConvergenceCriteria(
+                relative_fitness=self.parameters.relative_rmse,
+                relative_rmse=self.parameters.relative_rmse,
+                max_iteration=self.parameters.max_iterations))
+        logger.info(f"ICP registration result: {result_icp}")
+        return result_icp.transformation
 
     def visualize(self) -> None:
         '''
