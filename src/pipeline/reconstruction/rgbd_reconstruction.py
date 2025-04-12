@@ -173,29 +173,39 @@ class RGBDReconstruction:
         pcd = o3d.geometry.PointCloud()
         for key, rgbd in tqdm(self.rgbds.items(), desc="Unprojecting depth"):
             camera = self.cameras[key]
-            intrinsic = camera.get_o3d_intrinsic()
-            extrinsic = camera.extrinsic
             pcd_temp = o3d.geometry.PointCloud.create_from_rgbd_image(
                 rgbd,
-                intrinsic,
-                extrinsic,
+                camera.get_o3d_intrinsic(),
+                camera.extrinsic,
             )
             pcd = pcd.voxel_down_sample(
                 voxel_size=self.parameters.voxel_size)
             pcd_temp = pcd_temp.voxel_down_sample(
                 voxel_size=self.parameters.voxel_size)
             if self.parameters.icp_registration and len(pcd.points) > 0:
-                extrinsic = self._get_icp_transform(pcd, pcd_temp)
-                pcd_temp.transform(extrinsic)
+                icp_transform = self._get_icp_transform(pcd, pcd_temp)
 
-                # print(extrinsic)
+                # print(icp_transform)
+                # intrinsic = camera.get_o3d_intrinsic(self.target_width, self.target_height)
+                # extrinsic = camera.extrinsic
                 # vis = o3d.visualization.Visualizer()
                 # vis.create_window()
                 # vis.add_geometry(copy.deepcopy(pcd).paint_uniform_color([0, 1, 0]))
+
                 # vis.add_geometry(copy.deepcopy(pcd_temp).paint_uniform_color([1, 0, 0]))
-                # vis.add_geometry(copy.deepcopy(pcd_temp.transform(extrinsic).paint_uniform_color([0, 0, 1])))
+                # line_set = o3d.geometry.LineSet.create_camera_visualization(
+                #     intrinsic, extrinsic, scale=0.1)
+                # vis.add_geometry(line_set.paint_uniform_color([1, 0, 0]))
+
+                # vis.add_geometry(copy.deepcopy(pcd_temp).transform(icp_transform).paint_uniform_color([0, 0, 1]))
+                # line_set = o3d.geometry.LineSet.create_camera_visualization(
+                #     intrinsic, extrinsic @ np.linalg.inv(icp_transform), scale=0.1)
+                # vis.add_geometry(line_set.paint_uniform_color([0, 0, 1]))
                 # vis.run()
                 # vis.destroy_window()
+
+                pcd_temp.transform(icp_transform)
+                camera.extrinsic = camera.extrinsic @ np.linalg.inv(icp_transform)
             pcd += pcd_temp
 
         # TODO possible additional processing steps
