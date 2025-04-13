@@ -5,8 +5,8 @@ from pathlib import Path
 import hydra
 from omegaconf import DictConfig
 
-from pipeline import (RGBDReconstruction, get_camera_parser, get_depth_parser,
-                      get_image_parser)
+from pipeline import (OutputFormat, RGBDReconstruction, get_camera_parser,
+                      get_depth_parser, get_image_parser)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()
@@ -21,6 +21,7 @@ def main(cfg: DictConfig) -> None:
 
     # Print the configuration
     # logger.info(f"Configuration: \n{OmegaConf.to_yaml(cfg)}")
+    start = time.time()
     cameras = get_camera_parser(cfg.reconstruction.camera_parser).cameras
     logger.info(f"Successfully loaded {len(cameras)} cameras")
     depths = get_depth_parser(cfg.reconstruction.depth_parser).depths
@@ -34,23 +35,32 @@ def main(cfg: DictConfig) -> None:
     reconstruction = RGBDReconstruction(
         cameras, images, depths,
         cfg.reconstruction.parameters)
-    logger.info("Successfully initialized RGBDReconstruction.")
+    end = time.time()
+    logger.info("Successfully initialized RGBDReconstruction in "
+                f"{end - start:.2f} seconds.")
     logger.info("Starting reconstruction...")
     start = time.time()
     reconstruction.reconstruct()
     end = time.time()
     logger.info(f"Reconstruction took {end - start:.2f} seconds.")
-    # reconstruction.visualize()
+    if cfg.get("visualize", False):
+        logger.info("Visualizing reconstruction...")
+        reconstruction.visualize()
+
     start = time.time()
-    logger.info("Saving reconstruction...")
-    reconstruction.save_txt(Path(cfg.output_dir))
+    if cfg.get("save_reconstruction", False):
+        out_format = OutputFormat(cfg.get("save_format", OutputFormat.BIN.value))
+        logger.info(f"Saving reconstruction in {out_format} format...")
+        if out_format == OutputFormat.TXT:
+            reconstruction.save_txt(Path(cfg.output_dir))
+        elif out_format == OutputFormat.BIN:
+            reconstruction.save(Path(cfg.output_dir))
+        else:
+            logger.warning(f"Unsupported output format: {out_format}. "
+                           f"Reconstruction will saved in binary format.")
+            reconstruction.save(Path(cfg.output_dir))
     end = time.time()
-    logger.info(f"Saving reconstruction (text) took {end - start:.2f} seconds.")
-    start = time.time()
-    logger.info("Saving reconstruction...")
-    reconstruction.save(Path(cfg.output_dir))
-    end = time.time()
-    logger.info(f"Saving reconstruction (binary) took {end - start:.2f} seconds.")
+    logger.info(f"Saving reconstruction took {end - start:.2f} seconds.")
 
 
 if __name__ == "__main__":

@@ -17,3 +17,6 @@ reconstruction:
     source_path: ./data/MuSHRoom/room_datasets/classroom/iphone/short_capture/depth
 
 output_dir: ./data/MuSHRoom/room_datasets/classroom/iphone/short_capture/rgbd_recon/
+save_reconstruction: true
+save_format: bin
+visualize: false

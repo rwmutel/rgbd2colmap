@@ -18,3 +18,6 @@ reconstruction:
     source_path: ./data/It-Jim/office26_89C7C314-D858-478B-97C2-8E07DEBA0C50/scan_output/camera_poses_89C7C314-D858-478B-97C2-8E07DEBA0C50.json
 
 output_dir: ./data/It-Jim/office26_89C7C314-D858-478B-97C2-8E07DEBA0C50/rgbd_recon/
+save_reconstruction: true
+save_format: bin
+visualize: false
