@@ -1,0 +1,6 @@
+hydra-core==1.3.2
+numpy==1.26.4
+omegaconf==2.3.0
+open3d_cpu==0.18.0
+opencv_python==4.10.0.84
+tqdm==4.66.5
