@@ -6,7 +6,6 @@ import numpy as np
 
 from .cameras import Camera, CameraParser
 
-
 # same as ARKit fix. MuSHRoom uses polycam for iphone capture
 # https://github.com/TUTvision/MuSHRoom/blob/main/README.md#data-structure
 # https://github.com/PolyCam/polyform?tab=readme-ov-file#cameras

@@ -1,11 +1,12 @@
+import copy
 import logging
+from enum import Enum
 from pathlib import Path
 from typing import Dict, Tuple
-import copy
 
 import cv2
-import open3d as o3d
 import numpy as np
+import open3d as o3d
 from omegaconf import DictConfig
 from tqdm import tqdm
 
@@ -44,6 +45,23 @@ class RGBDReconstructionParams:
             self.relative_fitness = cfg.icp_registration.get("relative_fitness", 1e-6)
             self.relative_rmse = cfg.icp_registration.get("relative_rmse", 1e-6)
             self.max_iterations = cfg.icp_registration.get("max_iterations", 30)
+
+
+class OutputFormat(Enum):
+    '''
+    Enum for output format of the reconstruction.
+    '''
+    BIN = "bin"
+    TXT = "txt"
+
+    @classmethod
+    def _missing_(cls, value):
+        value = value.lower()
+        for member in cls:
+            if member.value == value:
+                return member
+        return cls.BIN  # Default to BIN if no match found
+
 
 
 class RGBDReconstruction:
@@ -309,7 +327,7 @@ class RGBDReconstruction:
         write_cameras_binary(self.cameras, sparse_path / 'cameras.bin')
         write_images_binary(self.cameras, self.images, sparse_path / 'images.bin')
         write_points3D_binary(self.pcd, sparse_path / 'points3D.bin')
-        logger.info(f"Saved reconstructed scene to {save_path} (BIN)")
+        logger.info(f"Saved reconstructed scene to {save_path}  ({OutputFormat.BIN})")
 
     def save_txt(self, save_path: Path):
         '''
@@ -326,4 +344,4 @@ class RGBDReconstruction:
         write_cameras_text(self.cameras, sparse_path / 'cameras.txt')
         write_images_text(self.cameras, self.images, sparse_path / 'images.txt')
         write_points3D_text(self.pcd, sparse_path / 'points3D.txt')
-        logger.info(f"Saved reconstructed scene to {save_path} (TXT)")
+        logger.info(f"Saved reconstructed scene to {save_path} ({OutputFormat.TXT})")
