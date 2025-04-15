@@ -105,8 +105,11 @@ class RGBDReconstruction:
         self.images = {k: self.images[k] for k in keys}
         self.cameras = {k: self.cameras[k] for k in keys}
         self.depths = {k: self.depths[k] for k in keys}
-        logger.info("Matched (and downsampled) images and depths to "
-                    f"{len(self.images)} frames ({self.parameters.skip_n} stride)")
+        if len(self.images) == 0:
+            raise ValueError("No matching images and depths found.")
+        else:
+            logger.info("Matched (and downsampled) images and depths to "
+                        f"{len(self.images)} frames ({self.parameters.skip_n} stride)")
 
     def _rescale_intrinsics(
         self,

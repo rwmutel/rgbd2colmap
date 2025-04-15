@@ -1,4 +1,5 @@
 from omegaconf import DictConfig
+from pathlib import Path
 
 from .arkit_images import ARKitImageParser
 from .images import Image, ImageParser  # noqa: F401
@@ -16,6 +17,6 @@ def get_image_parser(cfg: DictConfig) -> ImageParser:
     Factory function for creating image parsers based on the configuration.
     '''
     if cfg.name in IMAGE_PARSERS:
-        return IMAGE_PARSERS[cfg.name](cfg.source_path)
+        return IMAGE_PARSERS[cfg.name](Path(cfg.source_path))
     else:
         raise ValueError(f"Unknown image parser: {cfg.name}")

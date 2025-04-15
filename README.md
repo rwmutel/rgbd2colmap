@@ -57,10 +57,10 @@ reconstruction:
     source_path: ./data/It-Jim/scene_example/scan_output/camera_poses.json
   image_parser:
     name: ARKitImageParser
-    source_path: ./data/It-Jim/scene_example/scan_output/camera_poses.json
+    source_path: ./data/It-Jim/scene_example/frames
   depth_parser:
     name: ARKitDepthParser
-    source_path: ./data/It-Jim/scene_example/scan_output/camera_poses.json
+    source_path: ./data/It-Jim/scene_example/frames
 
 output_dir: ./data/It-Jim/scene_example/rgbd_recon/
 save_reconstruction: true

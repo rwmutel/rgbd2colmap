@@ -20,14 +20,17 @@ class ARKitImageParser(ImageParser):
 
     def parse(self, path: Path) -> Dict[int, Image]:
         '''
-        Parses images related to ARKit reconstruction from json log
+        Parses images related to ARKit reconstruction from frames folder
         '''
-        with open(path, 'r') as file:
-            data = json.load(file)
+        image_files = []
+        for ext in ['jpg', 'jpeg', 'png']:
+            image_files.extend(path.glob(f"*.{ext}"))
+        if not image_files:
+            logger.warning(f"No images found in {path}")
+            return {}
         images = {}
-        for pose in data['poses']:
-            image_path = self.reconstruction_path / Path(pose['image'])
-            image_id = int(Path(pose['image']).stem.split('_')[-1])
+        for image_path in image_files:
+            image_id = int(image_path.stem)
             image_np = cv2.imread(str(image_path))
             if image_np is None:
                 logger.warning(f"Image not found or error loading {image_path}")
