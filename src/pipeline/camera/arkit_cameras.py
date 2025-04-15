@@ -37,7 +37,7 @@ class ARKitCameraParser(CameraParser):
             )[::skip_n]
         for pose in strided_sorted_poses:
             camera_id = int(Path(pose['image']).stem.split('_')[-1])
-            intrinsics = np.array(pose['intrinsic']).reshape(3, 3)
+            intrinsics = np.array(pose['intrinsic']).reshape(3, 3).T
             extrinsics = np.array(pose['transform']).reshape(4, 4).T @ ARKIT_FIX
             extrinsics[3, 3] = 1.0
             extrinsics = np.linalg.inv(extrinsics)
