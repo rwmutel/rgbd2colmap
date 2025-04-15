@@ -54,6 +54,8 @@ class Camera:
 
     @width.setter
     def width(self, width: int):
+        if width != self._width:
+            self.intrinsic[0, 2] = width / 2
         self._width = width
 
     @property
@@ -62,6 +64,8 @@ class Camera:
 
     @height.setter
     def height(self, height: int):
+        if height != self._height:
+            self.intrinsic[1, 2] = height / 2
         self._height = height
 
 
