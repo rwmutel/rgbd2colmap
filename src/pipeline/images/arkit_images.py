@@ -33,7 +33,7 @@ class ARKitImageParser(ImageParser):
         image_files = sorted(image_files)[::skip_n]
         images = {}
         for image_path in image_files:
-            image_id = int(image_path.stem.split('_')[-1]) if '_' in image_path.stem else image_path.stem
+            image_id = int(image_path.stem.split('_')[-1]) if '_' in image_path.stem else int(image_path.stem)
             image_np = cv2.imread(str(image_path))
             if image_np is None:
                 logger.warning(f"Image not found or error loading {image_path}")
