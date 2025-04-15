@@ -2,7 +2,7 @@ import copy
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Literal
 
 import cv2
 import numpy as np
@@ -211,6 +211,8 @@ class RGBDReconstruction:
         Reconstructs the scene by unprojecting depth maps from given cameras
         '''
         pcd = o3d.geometry.PointCloud()
+        prev_rgbd = None
+        prev_camera = None
         for key, rgbd in tqdm(self.rgbds.items(), desc="Unprojecting depth"):
             camera = self.cameras[key]
             pcd_temp = o3d.geometry.PointCloud.create_from_rgbd_image(
@@ -225,32 +227,84 @@ class RGBDReconstruction:
             if self.parameters.icp_registration and len(pcd.points) > 0:
                 try:
                     icp_transform = self._get_icp_transform(pcd, pcd_temp)
+                    pcd_temp_copy = copy.deepcopy(pcd_temp)
                     pcd_temp.transform(icp_transform)
                     camera.extrinsic = camera.extrinsic @ np.linalg.inv(icp_transform)
                 except RuntimeError as e:
                     logger.warning(f"ICP registration failed for {key}: {e}")
                     continue
 
-                # print(icp_transform)
-                # intrinsic = camera.get_o3d_intrinsic(self.target_width, self.target_height)
-                # extrinsic = camera.extrinsic
-                # vis = o3d.visualization.Visualizer()
-                # vis.create_window()
-                # vis.add_geometry(copy.deepcopy(pcd).paint_uniform_color([0, 1, 0]))
+                print(icp_transform)
+                intrinsic = camera.get_o3d_intrinsic(self.target_width, self.target_height)
+                extrinsic = camera.extrinsic
+                vis = o3d.visualization.Visualizer()
+                vis.create_window()
+                vis.add_geometry(copy.deepcopy(pcd).paint_uniform_color([0, 1, 0]))
 
-                # vis.add_geometry(copy.deepcopy(pcd_temp).paint_uniform_color([1, 0, 0]))
-                # line_set = o3d.geometry.LineSet.create_camera_visualization(
-                #     intrinsic, extrinsic, scale=0.1)
-                # vis.add_geometry(line_set.paint_uniform_color([1, 0, 0]))
+                vis.add_geometry(copy.deepcopy(pcd_temp_copy).paint_uniform_color([1, 0, 0]))
+                line_set = o3d.geometry.LineSet.create_camera_visualization(
+                    intrinsic, extrinsic, scale=0.1)
+                vis.add_geometry(line_set.paint_uniform_color([1, 0, 0]))
 
-                # vis.add_geometry(copy.deepcopy(pcd_temp).transform(icp_transform).paint_uniform_color([0, 0, 1]))
-                # line_set = o3d.geometry.LineSet.create_camera_visualization(
-                #     intrinsic, extrinsic @ np.linalg.inv(icp_transform), scale=0.1)
-                # vis.add_geometry(line_set.paint_uniform_color([0, 0, 1]))
-                # vis.run()
-                # vis.destroy_window()
+                vis.add_geometry(copy.deepcopy(pcd_temp_copy).transform(icp_transform).paint_uniform_color([0, 0, 1]))
+                line_set = o3d.geometry.LineSet.create_camera_visualization(
+                    intrinsic, extrinsic @ np.linalg.inv(icp_transform), scale=0.1)
+                vis.add_geometry(line_set.paint_uniform_color([0, 0, 1]))
+                vis.run()
+                vis.destroy_window()
+            
+            # if not self.parameters.icp_registration and len(pcd.points) > 0:
+            #     intrinsic = camera.get_o3d_intrinsic(self.target_width, self.target_height)
+            #     extrinsic = camera.extrinsic
+            #     vis = o3d.visualization.Visualizer()
+            #     vis.create_window()
+            #     vis.add_geometry(copy.deepcopy(pcd).paint_uniform_color([0, 1, 0]))
+
+            #     vis.add_geometry(copy.deepcopy(pcd_temp).paint_uniform_color([1, 0, 0]))
+            #     line_set = o3d.geometry.LineSet.create_camera_visualization(
+            #         intrinsic, extrinsic, scale=0.1)
+            #     vis.add_geometry(line_set.paint_uniform_color([1, 0, 0]))
+            #     vis.run()
+            #     vis.destroy_window()
+            
+            if prev_rgbd is not None:
+                try:
+                    odo_init = np.linalg.inv(camera.extrinsic) @ prev_camera.extrinsic
+                    odo_transform = self._get_odometry_transform(
+                        prev_rgbd,
+                        rgbd,
+                        camera.get_o3d_intrinsic(self.target_width, self.target_height),
+                        odo_init)
+                    pcd_temp_copy = copy.deepcopy(pcd_temp)
+                    pcd_temp.transform(odo_transform)
+                    camera.extrinsic = camera.extrinsic @ np.linalg.inv(odo_transform)
+
+                    intrinsic = camera.get_o3d_intrinsic(self.target_width, self.target_height)
+                    extrinsic = camera.extrinsic
+                    vis = o3d.visualization.Visualizer()
+                    vis.create_window()
+                    vis.add_geometry(copy.deepcopy(pcd).paint_uniform_color([0, 1, 0]))
+
+                    vis.add_geometry(copy.deepcopy(pcd_temp_copy).paint_uniform_color([1, 0, 0]))
+                    line_set = o3d.geometry.LineSet.create_camera_visualization(
+                        intrinsic, extrinsic, scale=0.1)
+                    vis.add_geometry(line_set.paint_uniform_color([1, 0, 0]))
+
+                    vis.add_geometry(copy.deepcopy(pcd_temp_copy).transform(odo_transform).paint_uniform_color([0, 0, 1]))
+                    line_set = o3d.geometry.LineSet.create_camera_visualization(
+                        intrinsic, extrinsic @ np.linalg.inv(odo_transform), scale=0.1)
+                    vis.add_geometry(line_set.paint_uniform_color([0, 0, 1]))
+                    vis.run()
+                    vis.destroy_window()
+
+                except RuntimeError as e:
+                    logger.warning(f"Odometry estimation failed for {key}: {e}")
+                    continue
+
 
             pcd += pcd_temp
+            prev_rgbd = rgbd
+            prev_camera = camera
 
         # TODO possible additional processing steps
         # pcd = pcd.remove_non_finite_points()
@@ -259,12 +313,42 @@ class RGBDReconstruction:
         # pcd = pcd.remove_duplicated_points()
         # pcd = pcd.remove_duplicated_triangles()
         return pcd
+    
+    def _get_odometry_transform(
+        self,
+        source_rgbd: o3d.geometry.RGBDImage,
+        registring_rgbd: o3d.geometry.RGBDImage,
+        intrinsic: np.ndarray,
+        odo_init: np.ndarray = np.eye(4),
+    ) -> np.ndarray:
+        '''
+        RGBD-based odometry estimation.
+        https://www.open3d.org/docs/latest/tutorial/pipelines/rgbd_odometry.html
+        '''
+        odo_init = np.eye(4)
+        success, transformation, info = \
+            o3d.pipelines.odometry.compute_rgbd_odometry(
+                source_rgbd,
+                registring_rgbd,
+                intrinsic,
+                odo_init,
+                o3d.pipelines.odometry.RGBDOdometryJacobianFromHybridTerm(),
+                o3d.pipelines.odometry.OdometryOption(
+                    depth_diff_max=0.03,
+                    depth_min=0,
+                    depth_max=4,),
+            )
+        if not success:
+            raise RuntimeError("Odometry estimation failed.")
+        print(success, transformation, info)
+        return transformation
+        
 
     def _get_icp_transform(
         self,
         global_pcd: o3d.geometry.PointCloud,
         registring_pcd: o3d.geometry.PointCloud
-    ) -> o3d.geometry.PointCloud:
+    ) -> np.ndarray:
         '''
         Registers point cloud using ICP colored registration.
         Returns the adjusting transformation for registring_pcd
