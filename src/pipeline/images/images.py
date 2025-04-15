@@ -30,15 +30,16 @@ class ImageParser:
     '''
 
     def __init__(self, source_path: Path, **kwargs: Dict[str, Any]):
-        self.images = self.parse(source_path, **kwargs)
+        self.source_path = Path(source_path)
+        self.images = {}
 
     def parse(
         self,
         path: Path,
-        **kwargs: Dict[str, Any]
+        skip_n: int = 1,
     ) -> Dict[str | int, Image]:
         '''
-        Parses values from a source path.
+        Parses values from a source path with optional stride [::skip_n].
 
         Args:
             path (Path): Path to the source data.
@@ -50,10 +51,16 @@ class ImageParser:
             "parse() method must be implemented in Images subclasses")
 
     def __iter__(self) -> Iterable[Tuple[str | int, Image]]:
+        if not self.images:
+            raise ValueError("Images are not parsed yet.")
         return iter(self.images.items())
 
     def __len__(self) -> int:
+        if not self.images:
+            raise ValueError("Images are not parsed yet.")
         return len(self.images)
 
     def __getitem__(self, index: int | str) -> Image:
+        if not self.images:
+            raise ValueError("Images are not parsed yet.")
         return self.images[index]

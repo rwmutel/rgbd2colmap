@@ -78,17 +78,19 @@ class CameraParser:
     further matching with images and depths.
     '''
 
-    def __init__(self, source_path: Path, **kwargs: Dict[str, Any]):
-        self.cameras = self.parse(source_path, **kwargs)
+    def __init__(self, source_path: str):
+        self.source_path = Path(source_path)
+        self.cameras = {}
 
     @staticmethod
-    def parse(path: Path, **kwargs: Dict[str, Any]) -> Dict[str | int, Camera]:
+    def parse(path: Path, skip_n: int = 1) -> Dict[str | int, Camera]:
         '''
         Parses values from a source path.
+        Must assign self.cameras: Dict[str | int, Camera] to the parsed values.
 
         Args:
             path (Path): Path to the source data.
-            **kwargs (Dict[str, Any]): Additional keyword arguments.
+            skip_n (int): Stride to iterate over cameras ([::skip_n]). Default is 1.
         Returns:
             Dict[str | int, Camera]: Dictionary of cameras with unique ids.
         '''
@@ -96,10 +98,16 @@ class CameraParser:
             "parse() method must be implemented in Cameras subclasses")
 
     def __iter__(self) -> Iterable[Tuple[str | int, Camera]]:
+        if not self.cameras:
+            raise ValueError("Cameras are not parsed yet.")
         return iter(self.cameras.items())
 
     def __len__(self) -> int:
+        if not self.cameras:
+            raise ValueError("Cameras are not parsed yet.")
         return len(self.cameras)
 
     def __getitem__(self, index: int | str) -> Camera:
+        if not self.cameras:
+            raise ValueError("Cameras are not parsed yet.")
         return self.cameras[index]

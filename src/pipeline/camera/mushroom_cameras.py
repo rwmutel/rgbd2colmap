@@ -26,10 +26,12 @@ class MushroomCameraParser(CameraParser):
     def __init__(self, source_path: str):
         super().__init__(source_path)
 
-    def parse(self, path: Path) -> Dict[int, Camera]:
+    def parse(self, path: Path = None, skip_n: int = 1) -> Dict[int, Camera]:
         '''
         Parses ARKit cameras from json log
         '''
+        if not path:
+            path = self.source_path
         with open(path, 'r') as file:
             data = json.load(file)
         cameras = {}

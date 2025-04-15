@@ -19,17 +19,23 @@ class ARKitCameraParser(CameraParser):
     Custom ARKit logs camera parser.
     '''
     def __init__(self, source_path: str):
-        self.reconstruction_path = Path(source_path).parent.parent
         super().__init__(source_path)
-    
-    def parse(self, path: Path) -> Dict[int, Camera]:
+        self.reconstruction_path = self.source_path.parent.parent
+
+    def parse(self, path: Path = None, skip_n: int = 1) -> Dict[int, Camera]:
         '''
         Parses ARKit cameras from json log
         '''
+        if not path:
+            path = self.source_path
         with open(path, 'r') as file:
             data = json.load(file)
         cameras = {}
-        for pose in data['poses']:
+        strided_sorted_poses = sorted(
+            data['poses'],
+            key=lambda x: int(Path(x['image']).stem.split('_')[-1])
+            )[::skip_n]
+        for pose in strided_sorted_poses:
             camera_id = int(Path(pose['image']).stem.split('_')[-1])
             intrinsics = np.array(pose['intrinsic']).reshape(3, 3)
             extrinsics = np.array(pose['transform']).reshape(4, 4).T @ ARKIT_FIX

@@ -12,15 +12,18 @@ class ARKitDepthParser(DepthsParser):
     Custom ARKit logs depth parser.
     '''
     def __init__(self, source_path: str):
-        self.reconstruction_path = Path(source_path).parent.parent
         super().__init__(source_path)
+        self.reconstruction_path = self.source_path.parent.parent
 
-    def parse(self, path: Path) -> Dict[int, Depth]:
+    def parse(self, path: Path = None, skip_n: int = 1) -> Dict[int, Depth]:
         '''
         Parses and rescales ARKit depths (depth*_*.txt) from a source path.
         '''
+        if not path:
+            path = self.source_path
         depths = {}
-        for depth_path in path.glob("*.txt"):
+        depth_paths = sorted(self.source_path.glob("depth_*.txt"))[::skip_n]
+        for depth_path in depth_paths:
             depth_id = int(depth_path.stem.split('_')[-1])
             depth_map = np.loadtxt(depth_path, delimiter=',', dtype=np.float32)
             depths[depth_id] = depth_map

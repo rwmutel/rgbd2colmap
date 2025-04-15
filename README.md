@@ -45,12 +45,12 @@ Config example is as follows:
 ```yaml
 # configs/main.yaml
 reconstruction:
+  skip_n: 1
   parameters:
     voxel_downsample_size: 0.05
     icp_registration:
       max_iterations: 50
       relative_rmse: 1e-6
-    skip_n: 1
     max_depth: 5.0
   camera_parser:
     name: ARKitCameraParser
@@ -71,7 +71,7 @@ visualize: false
 Thus, to experiment and **override** parameters one can run:
 
 ```shell
-python src/main.py reconstruction.parameters.icp_registration.max_iterations=100 reconstruction.parameters.skip_n=3
+python src/main.py reconstruction.parameters.icp_registration.max_iterations=100 reconstruction.skip_n=3
 ```
 To turn visualizations on, add `visualize=true` to the command. To save text files for debugging, add `save_format=text` to the command.
 

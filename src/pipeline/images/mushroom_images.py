@@ -18,10 +18,12 @@ class MushroomImageParser(ImageParser):
     def __init__(self, source_path: str):
         super().__init__(Path(source_path))
 
-    def parse(self, path: Path) -> Dict[int, Image]:
+    def parse(self, path: Path = None, skip_n: int = 1) -> Dict[int, Image]:
         '''
         Parses images related to ARKit reconstruction from json log
         '''
+        if not path:
+            path = self.source_path
         images = {}
         for image_file in sorted(path.iterdir()):
             if image_file.suffix not in [".jpg", ".png", ".jpeg"]:

@@ -16,10 +16,12 @@ class MushroomDepthParser(DepthsParser):
     def __init__(self, source_path: str):
         super().__init__(Path(source_path))
 
-    def parse(self, path: Path) -> Dict[int, Depth]:
+    def parse(self, path: Path = None, skip_n: int = 1) -> Dict[int, Depth]:
         '''
         Parses and rescales ARKit depths from json log
         '''
+        if not path:
+            path = self.source_path
         depths = {}
         for depth_file in sorted(path.iterdir()):
             if depth_file.suffix != '.png':

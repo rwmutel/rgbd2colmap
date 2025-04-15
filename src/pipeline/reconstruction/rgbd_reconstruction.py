@@ -33,13 +33,11 @@ class RGBDReconstructionParams:
           + relative_fitness (float): Relative fitness for ICP registration.
           + relative_rmse (float): Relative RMSE for ICP registration.
           + max_iterations (int): Maximum iterations for ICP registration.
-        skip_n (int): Stride when sampling images for reconstruction.
     '''
     def __init__(self, cfg: DictConfig):
         self.target_image_size = cfg.get('target_image_size', None)
         self.voxel_size = cfg.get('voxel_size', 0.05)
         self.max_depth = cfg.get("max_depth", 1000.0)
-        self.skip_n = cfg.get('skip_n', 1)
         self.icp_registration = cfg.get('icp_registration', False)
         if self.icp_registration:
             self.relative_fitness = cfg.icp_registration.get("relative_fitness", 1e-6)
@@ -96,20 +94,19 @@ class RGBDReconstruction:
 
     def _match_and_downsample(self) -> None:
         '''
-        Downsamples images and depths by skipping every n-th image
+        Matches images, depths and cameras by their keys
         '''
         matched_keys = set(self.images.keys())\
             .intersection(self.depths.keys())\
             .intersection(self.cameras.keys())
-        keys = sorted(matched_keys)[::self.parameters.skip_n]
+        keys = sorted(matched_keys)
         self.images = {k: self.images[k] for k in keys}
         self.cameras = {k: self.cameras[k] for k in keys}
         self.depths = {k: self.depths[k] for k in keys}
         if len(self.images) == 0:
             raise ValueError("No matching images and depths found.")
         else:
-            logger.info("Matched (and downsampled) images and depths to "
-                        f"{len(self.images)} frames ({self.parameters.skip_n} stride)")
+            logger.info(f"Matched {len(self.images)} RGBD frames")
 
     def _rescale_intrinsics(
         self,

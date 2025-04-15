@@ -20,19 +20,20 @@ class DepthsParser:
     '''
 
     def __init__(self, source_path: Path, **kwargs: Dict[str, Any]):
-        self.depths = self.parse(source_path, **kwargs)
+        self.source_path = Path(source_path)
+        self.depths = {}
 
     def parse(
         self,
         path: Path,
-        **kwargs: Dict[str, Any]
+        skip_n: int = 1,
     ) -> Dict[str | int, Depth]:
         '''
-        Parses values from a source path.
+        Parses values from a source path with optional stride [::skip_n].
         
         Args:
             path (Path): Path to the source data.
-            **kwargs (Dict[str, Any]): Additional keyword arguments.
+            skip_n (int): Stride to iterate over depths ([::skip_n]). Default is 1.
         Returns:
             Dict[str | int, Depth]: Dictionary of depths with unique ids.
         '''
@@ -40,10 +41,16 @@ class DepthsParser:
             "parse() method must be implemented in Depths subclasses")
 
     def __iter__(self) -> Iterable[Tuple[str | int, Depth]]:
+        if not self.depths:
+            raise ValueError("Depths are not parsed yet.")
         return iter(self.depths.items())
 
     def __len__(self) -> int:
+        if not self.depths:
+            raise ValueError("Depths are not parsed yet.")
         return len(self.depths)
 
     def __getitem__(self, index: int | str) -> Depth:
+        if not self.depths:
+            raise ValueError("Depths are not parsed yet.")
         return self.depths[index]

@@ -21,12 +21,16 @@ def main(cfg: DictConfig) -> None:
 
     # Print the configuration
     # logger.info(f"Configuration: \n{OmegaConf.to_yaml(cfg)}")
+    skip_n = cfg.reconstruction.get("skip_n", 1)
     start = time.time()
-    cameras = get_camera_parser(cfg.reconstruction.camera_parser).cameras
+    cameras = get_camera_parser(cfg.reconstruction.camera_parser)\
+        .parse(skip_n=skip_n)
     logger.info(f"Successfully loaded {len(cameras)} cameras")
-    depths = get_depth_parser(cfg.reconstruction.depth_parser).depths
+    depths = get_depth_parser(cfg.reconstruction.depth_parser)\
+        .parse(skip_n=skip_n)
     logger.info(f"Successfully loaded {len(depths)} depth maps")
-    images = get_image_parser(cfg.reconstruction.image_parser).images
+    images = get_image_parser(cfg.reconstruction.image_parser)\
+        .parse(skip_n=skip_n)
     logger.info(f"Successfully loaded {len(images)} images")
     if not len(cameras) == len(images) == len(depths):
         logger.warning(f"Number of cameras ({len(cameras)}),"
