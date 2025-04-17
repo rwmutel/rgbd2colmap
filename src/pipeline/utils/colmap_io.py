@@ -64,6 +64,7 @@ def write_cameras_binary(cameras: Dict[str | int, Camera], path: Path | str):
         write_next_bytes(fid, len(cameras), "Q")
         for cam_id, cam in cameras.items():
             model_id = CAMERA_MODEL_ID
+            cam_id = parse_int_id(cam_id)
             camera_properties = [cam_id, model_id, cam.width, cam.height]
             write_next_bytes(fid, camera_properties, "iiQQ")
             for p in [cam.intrinsic[0, 0], cam.intrinsic[1, 1],
@@ -86,6 +87,7 @@ def write_cameras_text(cameras: Dict[int | str, Camera], path: Path | str):
     with open(path, "w") as fid:
         fid.write(HEADER)
         for cam_id, cam in cameras.items():
+            cam_id = parse_int_id(cam_id)
             to_write = [cam_id, CAMERA_MODEL_NAME, cam.width, cam.height,
                         cam.intrinsic[0, 0], cam.intrinsic[1, 1],
                         cam.intrinsic[0, 2], cam.intrinsic[1, 2]]
@@ -105,12 +107,13 @@ def write_images_binary(
     """
     with open(path, "wb") as fid:
         write_next_bytes(fid, len(cameras), "Q")
-        for cam_id, cam in cameras.items():
+        for key, cam in cameras.items():
+            cam_id = parse_int_id(key)
             write_next_bytes(fid, cam_id, "i")
             write_next_bytes(fid, (cam.qvec()).tolist(), "dddd")
             write_next_bytes(fid, (cam.tvec()).tolist(), "ddd")
             write_next_bytes(fid, cam_id, "i")
-            for char in images[cam_id].path.name:
+            for char in images[key].path.name:
                 write_next_bytes(fid, char.encode("utf-8"), "c")
             write_next_bytes(fid, b"\x00", "c")
             point3D_ids = [int(PLACEHOLDER_VALUE)]
@@ -141,11 +144,12 @@ def write_images_text(
         fid.write(HEADER)
         for key in cameras.keys():
             cam = cameras[key]
+            cam_id = parse_int_id(key)
             image_header = [
-                key,
+                cam_id,
                 *(cam.qvec()).tolist(),
                 *(cam.tvec()).tolist(),
-                key,
+                cam_id,
                 images[key].path.name,
             ]
             first_line = " ".join(map(str, image_header))
@@ -231,3 +235,13 @@ def copy_images(images: Dict[int | str, Image], dst_dir: Path):
     for image in images.values():
         dst_image_path = dst_dir / image.path.name
         cv2.imwrite(str(dst_image_path), image.image_np)
+
+
+def parse_int_id(iid: int | str) -> int:
+    """
+    Parse image id from string to int.
+    """
+    # TODO dirty hack, at least document it!
+    if isinstance(iid, str):
+        iid = int(iid.split("_")[-1])
+    return iid
