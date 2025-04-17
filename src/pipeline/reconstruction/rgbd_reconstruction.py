@@ -61,7 +61,6 @@ class OutputFormat(Enum):
         return cls.BIN  # Default to BIN if no match found
 
 
-
 class RGBDReconstruction:
     '''
     Class that agregates cameras, images and depths

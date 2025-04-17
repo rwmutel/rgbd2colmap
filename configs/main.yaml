@@ -2,7 +2,7 @@ reconstruction:
   skip_n: 1
   parameters:
     # target_image_size: [640, 480]
-    voxel_downsample_size: 0.05
+    voxel_size: 0.05
     icp_registration:
       max_iterations: 50
       relative_rmse: 1e-6
