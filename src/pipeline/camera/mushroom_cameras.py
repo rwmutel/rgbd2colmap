@@ -34,15 +34,25 @@ class MushroomCameraParser(CameraParser):
             path = self.source_path
         with open(path, 'r') as file:
             data = json.load(file)
+        if "colmap" in path.stem:
+            transforms_format = "colmap"
+            fl_x, fl_y = data["fl_x"], data["fl_y"]
+            cx, cy = data["cx"], data["cy"]
+
         cameras = {}
         for pose in data['frames']:
             camera_id = Path(pose['file_path']).stem
+            if transforms_format != "colmap":
+                fl_x, fl_y = pose["fl_x"], pose["fl_y"]
+                cx, cy = pose["cx"], pose["cy"]
             intrinsics = np.array([
-                [pose["fl_x"], 0, pose["cx"]],
-                [0, pose["fl_y"], pose["cy"]],
+                [fl_x, 0, cx],
+                [0, fl_y, cy],
                 [0, 0, 1]
             ], dtype=np.float32)
-            extrinsics = np.array(pose['transform_matrix']) @ POLYCAM_FIX
+            extrinsics = np.array(pose['transform_matrix'])
+            # if transforms_format != "colmap":
+            extrinsics = extrinsics @ POLYCAM_FIX
             extrinsics = np.linalg.inv(extrinsics)
             cameras[camera_id] = Camera(intrinsics, extrinsics)
         # sort cameras by id to have adjacent frames
