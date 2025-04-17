@@ -6,6 +6,9 @@ reconstruction:
       relative_rmse: 1e-6
     skip_n: 1
     max_depth: 6.0
+    remove_stat_outliers:
+      nb_neighbors: 20
+      std_ratio: 1.0
   camera_parser:
     name: MushroomCameraParser
     source_path: ./data/MuSHRoom/room_datasets/classroom/iphone/short_capture/transformations.json

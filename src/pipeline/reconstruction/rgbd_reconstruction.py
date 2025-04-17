@@ -43,6 +43,10 @@ class RGBDReconstructionParams:
             self.relative_fitness = cfg.icp_registration.get("relative_fitness", 1e-6)
             self.relative_rmse = cfg.icp_registration.get("relative_rmse", 1e-6)
             self.max_iterations = cfg.icp_registration.get("max_iterations", 30)
+        self.remove_stat_outliers = cfg.get('remove_stat_outliers', False)
+        if self.remove_stat_outliers:
+            self.nb_neighbors = cfg.remove_stat_outliers.get("nb_neigbors", 20)
+            self.remove_stat_outliers.std_ratio = cfg.remove_stat_outliers.get("std_ratio", 1.0)
 
 
 class OutputFormat(Enum):
@@ -251,12 +255,21 @@ class RGBDReconstruction:
 
             pcd += pcd_temp
 
-        # TODO possible additional processing steps
-        # pcd = pcd.remove_non_finite_points()
-        # pcd = pcd.remove_radius_outlier(nb_points=16, radius=0.05)
-        # pcd = pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
-        # pcd = pcd.remove_duplicated_points()
-        # pcd = pcd.remove_duplicated_triangles()
+        pcd = pcd.remove_non_finite_points()
+        pcd.voxel_down_sample(voxel_size=self.parameters.voxel_size)
+        if self.parameters.remove_stat_outliers:
+            cl, ind = pcd.remove_statistical_outlier(
+                nb_neighbors=self.parameters.remove_stat_outliers.nb_neighbors,
+                std_ratio=self.parameters.remove_stat_outliers.std_ratio)
+            # vis = o3d.visualization.Visualizer()
+            # vis.create_window()
+            # pcd_vis = copy.deepcopy(pcd)
+            # vis.add_geometry(pcd_vis.paint_uniform_color([1, 0, 0]))
+            # vis.add_geometry(pcd_vis.select_by_index(ind).paint_uniform_color([0, 1, 0]))
+            # vis.run()
+            # vis.destroy_window()
+            # pcd = pcd.select_by_index(ind)
+            # print(len(np.asarray(pcd.points)))
         return pcd
 
     def _get_icp_transform(
