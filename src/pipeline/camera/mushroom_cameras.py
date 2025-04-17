@@ -38,6 +38,8 @@ class MushroomCameraParser(CameraParser):
             transforms_format = "colmap"
             fl_x, fl_y = data["fl_x"], data["fl_y"]
             cx, cy = data["cx"], data["cy"]
+        else:
+            transforms_format = "polycam"
 
         cameras = {}
         for pose in data['frames']:
