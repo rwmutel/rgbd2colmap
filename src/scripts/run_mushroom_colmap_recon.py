@@ -10,58 +10,122 @@ from pathlib import Path
 import logging
 import re
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger()
 
 
-def run_command(command, cwd=None, measure_memory=False):
+def run_command(
+    command,
+    cwd=None,
+    measure_memory=False,
+    stream_output=False,
+    env=None):
     """Run a command and return its output along with memory usage if requested"""
     logger.info(f"Running: {command}")
     
+    merged_env = os.environ.copy()
+    if env:
+        merged_env.update(env)
+    
     if measure_memory:
-        # Use /usr/bin/time -v to measure memory usage
+        # Use /usr/bin/time -v (GNU time utility) to measure memory usage
         time_command = "/usr/bin/time -v"
         full_command = f"{time_command} {command}"
     else:
         full_command = command
     
     try:
-        result = subprocess.run(
+        process = subprocess.Popen(
             full_command,
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            cwd=cwd
+            cwd=cwd,
+            env=merged_env
         )
         
-        if result.returncode != 0:
-            logger.error(f"Error executing command: {command}")
-            logger.error(f"STDOUT: {result.stdout}")
-            logger.error(f"STDERR: {result.stderr}")
-            raise RuntimeError(f"Command failed with return code {result.returncode}")
+        stdout_data, stderr_data = "", ""
         
-        # If we measured memory, extract the peak memory usage from stderr
+        if stream_output:
+            # Stream output while capturing it
+            while True:
+                stdout_line = process.stdout.readline()
+                stderr_line = process.stderr.readline()
+                
+                if not stdout_line and not stderr_line and process.poll() is not None:
+                    break
+                
+                if stdout_line:
+                    stdout_line = stdout_line.rstrip()
+                    logger.info(stdout_line)
+                    stdout_data += stdout_line + "\n"
+                
+                if stderr_line:
+                    stderr_line = stderr_line.rstrip()
+                    logger.error(stderr_line)
+                    stderr_data += stderr_line + "\n"
+        else:
+            stdout_data, stderr_data = process.communicate()
+        
+        return_code = process.poll() if stream_output else process.wait()
+        if return_code != 0:
+            logger.error(f"Error executing command: {command}")
+            logger.error(f"STDOUT: {stdout_data}")
+            logger.error(f"STDERR: {stderr_data}")
+            raise RuntimeError(f"Command failed with return code {return_code}")
+        
         peak_memory_kb = None
         if measure_memory:
             # Look for the "Maximum resident set size" line in stderr
-            match = re.search(r"Maximum resident set size \(kbytes\): (\d+)", result.stderr)
+            match = re.search(r"Maximum resident set size \(kbytes\): (\d+)", stderr_data)
             if match:
                 peak_memory_kb = int(match.group(1))
                 peak_memory_mb = peak_memory_kb / 1024
                 logger.info(f"Peak memory usage: {peak_memory_mb:.2f} MB")
         
         return {
-            "stdout": result.stdout,
-            "stderr": result.stderr,
+            "stdout": stdout_data,
+            "stderr": stderr_data,
             "peak_memory_kb": peak_memory_kb
         }
     
     except subprocess.CalledProcessError as e:
         logger.error(f"Error executing command: {command}")
-        logger.error(f"STDOUT: {e.stdout}")
-        logger.error(f"STDERR: {e.stderr}")
+        logger.error(f"STDOUT: {e.stdout if hasattr(e, 'stdout') else 'N/A'}")
+        logger.error(f"STDERR: {e.stderr if hasattr(e, 'stderr') else 'N/A'}")
         raise RuntimeError(f"Command failed with return code {e.returncode}")
 
+def run_gaussian_splatting(scene_path, wandb_project, run_id):
+    """Run Gaussian Splatting training on a scene"""
+    scene_path = Path(scene_path)
+    scene_name = scene_path.parent.parent.name
+    
+    output_dir = f"output/{scene_name}_colmap"
+    start_time = time.time()
+    
+    gs_result = run_command(
+        f"conda run -n gaussian_splatting python train.py "
+        f"-s {str(scene_path)}/colmap "
+        f"-i {str(scene_path)}/images "
+        f"-m {output_dir} "
+        f"--wandb_project {wandb_project} "
+        f"--existing_run_id {run_id}",
+        cwd="third-party/gaussian-splatting",
+        measure_memory=True,
+        stream_output=True,
+    )
+    
+    elapsed_time = time.time() - start_time
+    
+    return {
+        "gs_training_elapsed_time": elapsed_time,
+        "gs_peak_memory_kb": gs_result["peak_memory_kb"]
+    }
+    
 
 def run_colmap_reconstruction(scene_path):
     """Run the COLMAP reconstruction pipeline on a scene"""
@@ -108,21 +172,17 @@ def run_colmap_reconstruction(scene_path):
         max_images = 0
         
         for submodel in submodels:
-            images_file = submodel / "images.txt"
-            if images_file.exists():
-                # Count the number of actual image entries in the file
-                # (skipping the header lines that start with '#')
-                with open(images_file, 'r') as f:
-                    image_count = sum(1 for line in f if not line.startswith('#') and line.strip())
-                    # Each image has 2 lines in the file, so divide by 2
-                    image_count = image_count // 2
-                    
-                if image_count > max_images:
-                    max_images = image_count
+            points3d_file = submodel / "points3D.bin"
+            if points3d_file.exists():
+            # Get the size of points3D.bin in bytes
+                points3d_size = points3d_file.stat().st_size
+            
+                if points3d_size > max_images:  # Reusing max_images variable to store max size
+                    max_images = points3d_size
                     largest_submodel = submodel
         
         if largest_submodel and largest_submodel.name != "0":
-            logger.warning(f"Selected submodel {largest_submodel.name} with {max_images} images")
+            logger.warning(f"Selected submodel {largest_submodel.name} with size of points3D.vin of {max_images}")
             
             # Make backup of submodel 0 if it exists
             if (colmap_dir / "0").exists():
@@ -195,13 +255,20 @@ def main():
             result = run_colmap_reconstruction(scene_path)
             
             wandb.log(result)
-            logger.info(f"Completed COLMAP reconstruction for {scene_name} in {result['colmap_elapsed_time']:.2f} seconds")
+            logger.info(f"Completed COLMAP reconstruction for {scene_name} in {result['reconstruction_elapsed_time']:.2f} seconds")
             
         except Exception as e:
             logger.error(f"Error processing scene {scene_name}: {e}")
             wandb.log({"error": str(e)})
         
-        wandb.finish()
+        try:
+            gs_results = run_gaussian_splatting(scene_path, args.project, run.id)
+            logger.info(f"Completed Gaussian Splatting training for {scene_name} in {gs_results['gs_training_elapsed_time']:.2f} seconds")
+            
+        except Exception as e:
+            logger.error(f"Error during Gaussian Splatting training for {scene_name}: {e}")
+        
+        logger.info(f"Finished processing scene: {scene_name}")
 
 
 if __name__ == "__main__":
