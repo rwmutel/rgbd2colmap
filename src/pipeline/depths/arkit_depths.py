@@ -1,10 +1,12 @@
-import json
+import logging
 from pathlib import Path
 from typing import Dict
 
 import numpy as np
 
 from .depths import Depth, DepthsParser
+
+logger = logging.getLogger()
 
 
 class ARKitDepthParser(DepthsParser):
@@ -25,6 +27,10 @@ class ARKitDepthParser(DepthsParser):
         depth_paths = sorted(self.source_path.glob("depth_*.txt"))[::skip_n]
         for depth_path in depth_paths:
             depth_id = int(depth_path.stem.split('_')[-1])
-            depth_map = np.loadtxt(depth_path, delimiter=',', dtype=np.float32)
-            depths[depth_id] = depth_map
+            try:
+                depth_map = np.loadtxt(depth_path, delimiter=',', dtype=np.float32)
+                depths[depth_id] = depth_map
+            except ValueError:
+                logger.warning(f"Failed to load depth map from {depth_path}. Skipping.")
+                continue
         return depths
