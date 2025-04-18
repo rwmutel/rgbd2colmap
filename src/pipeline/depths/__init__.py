@@ -1,5 +1,6 @@
-from omegaconf import DictConfig
 from pathlib import Path
+
+from omegaconf import DictConfig
 
 from .arkit_depths import ARKitDepthParser
 from .depths import Depth, DepthsParser  # noqa: F401

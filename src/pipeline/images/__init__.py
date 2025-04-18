@@ -1,5 +1,6 @@
-from omegaconf import DictConfig
 from pathlib import Path
+
+from omegaconf import DictConfig
 
 from .arkit_images import ARKitImageParser
 from .images import Image, ImageParser  # noqa: F401
