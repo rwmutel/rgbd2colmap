@@ -38,6 +38,7 @@ class RGBDReconstructionParams:
         self.target_image_size = cfg.get('target_image_size', None)
         self.voxel_size = cfg.get('voxel_size', 0.05)
         self.max_depth = cfg.get("max_depth", 1000.0)
+        self.target_pcd_size = cfg.get("target_pcd_size", -1)
         self.icp_registration = cfg.get('icp_registration', False)
         if self.icp_registration:
             self.relative_fitness = cfg.icp_registration.get("relative_fitness", 1e-6)
@@ -270,6 +271,12 @@ class RGBDReconstruction:
             # vis.destroy_window()
             # pcd = pcd.select_by_index(ind)
             # print(len(np.asarray(pcd.points)))
+        if self.parameters.target_pcd_size > 0:
+            # pcd = pcd.uniform_down_sample(
+                # every_k_points=int(len(pcd.points) / self.parameters.target_pcd_size))
+            pcd = pcd.random_down_sample(
+                sampling_ratio=self.parameters.target_pcd_size / len(pcd.points))
+        logger.info(f"Reconstructed {len(pcd.points)} points")
         return pcd
 
     def _get_icp_transform(
