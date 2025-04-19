@@ -27,12 +27,16 @@ class RGBDReconstructionParams:
 
     Attributes:
         target_image_size (Tuple[int, int]): Target image size for resizing.
-        voxel_size (float): Voxel size for downsampling point cloud.
+        voxel_downsampling_size (float): Voxel size for downsampling point cloud.
         max_depth (float): Maximum depth for depth truncation.
+        target_pcd_size (int): Target point cloud size for random points downsampling.
         icp_registration (bool): Whether to use ICP registration.
           + relative_fitness (float): Relative fitness for ICP registration.
           + relative_rmse (float): Relative RMSE for ICP registration.
           + max_iterations (int): Maximum iterations for ICP registration.
+        remove_stat_outliers (bool): Whether to remove statistical outliers.
+            + nb_neighbors (int): Number of neighbors for statistical outlier removal.
+            + std_ratio (float): Standard deviation ratio for statistical outlier removal.
     '''
     def __init__(self, cfg: DictConfig):
         self.target_image_size = cfg.get('target_image_size', None)

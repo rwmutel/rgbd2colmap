@@ -36,9 +36,31 @@ conda env create --file environment.yml
 conda activate gaussian_splatting
 ```
 
+## Reproducing Experimental Results
+
+Results on MuSHRoom dataset are obtained via runner script that integrates both reconstruction and Gaussian Splatting training. Options for reconstruction are
+
++ colmap_reconstruction
++ rgbd2colmap
++ rgbd2colmap_colmap_poses
+
+Keep in mind that the script is rather hardcoded, so you should adapt `scenes` list and 3D GS `train.py` script path for reproducing.
+
+Example command for running the script:
+
+```shell
+python src/scripts/run_mushroom_colmap_recon.py --project rgbd2colmap --pipeline rgbd2colmap_colmap_poses
+``` 
+
 ## Usage
 
-Main script is `src/main.py` configured with a YAML file for [hydra](https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/) configuration system. Base config is `configs/main.yaml`, which can be overriden using hydra syntax. We also provide a basic config for running on MuSHRoom dataset in `configs/main_mushroom.yaml`.
+Main script to run reconstruction is `src/main.py` configured with a YAML file for [hydra](https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/) configuration system. Base config is `configs/main.yaml`, which can be overriden using hydra syntax:
+
++ `reconstruction.parameters.icp_registration.max_iterations=100` for parameters defined in the config
++ `+reconstruction.parameters.target_image_size="[480,640]"` for adding new parameters
++ `-reconstruction.parameters.voxel_downsample_size` for removing parameters
+
+We provide a basic config for running on MuSHRoom dataset in `configs/main_mushroom.yaml`.
 
 Config example is as follows:
 
@@ -47,32 +69,38 @@ Config example is as follows:
 reconstruction:
   skip_n: 1
   parameters:
-    voxel_downsample_size: 0.05
+    # target_image_size: [640, 480]
+    # target_pcd_size: 10000
+    voxel_size: 0.05
     icp_registration:
       max_iterations: 50
       relative_rmse: 1e-6
     max_depth: 5.0
+    remove_stat_outliers:
+      nb_neighbors: 20
+      std_ratio: 1.0
   camera_parser:
     name: ARKitCameraParser
-    source_path: ./data/It-Jim/scene_example/scan_output/camera_poses.json
+    source_path: ./data/office26/scan_output/camera_poses.json
   image_parser:
     name: ARKitImageParser
-    source_path: ./data/It-Jim/scene_example/frames
+    source_path: ./data/It-Jim/office26/frames
   depth_parser:
     name: ARKitDepthParser
-    source_path: ./data/It-Jim/scene_example/frames
+    source_path: ./data/It-Jim/office26/frames
 
-output_dir: ./data/It-Jim/scene_example/rgbd_recon/
+output_dir: ./data/It-Jim/office26/rgbd_recon/
 save_reconstruction: true
 save_format: bin
 visualize: false
 ```
 
-Thus, to experiment and **override** parameters one can run:
+Thus, to experiment and **override** or **remove** parameters one can run:
 
 ```shell
-python src/main.py reconstruction.parameters.icp_registration.max_iterations=100 reconstruction.skip_n=3
+python src/main.py ~reconstruction.parameters.icp_registration.max_iterations reconstruction.skip_n=3
 ```
+
 To turn visualizations on, add `visualize=true` to the command. To save text files for debugging, add `save_format=text` to the command.
 
 For easier use of **MuSHRoom parsers** change base config:
@@ -80,8 +108,6 @@ For easier use of **MuSHRoom parsers** change base config:
 ```shell
 python src/main.py --config-name main_mushroom
 ```
-
-with the same syntax for overriding parameters.
 
 ## Dataset
 
@@ -97,6 +123,7 @@ This particular dataset was chosen because:
 2. It contains **RGB images** with **camera poses** and **depth maps** instead of just RGB images (as DeepBlending or MipNeRF360 datasets) or images + fused point cloud (as Tanks&Temples dataset), allowing to tune and benchmark the reconstruction pipeline
 3. Depth is captured by **multiple sensors**, ranging from Kinect and **iPhone** to professional Faro scanner, allowing to test the hypothesis with different classes of scanners (consumer vs professional)
 4. It has proven to be a useful dataset for **Gaussian Splatting research**, shown by *DN-Splatter* (**M. Turkulainen, X. Ren, I. Melekhov, O. Seiskari, E. Rahtu, and J. Kannala, ‘DN-Splatter: Depth and Normal Priors for Gaussian Splatting and Meshing’, arXiv [cs.CV]. 2024.**)
+5. In addition to iPhone captures with camera poses calculated by **Polycam** SLAM, authors provide **COLMAP** camera poses for the same captures, allowing to compare the results of different reconstruction pipelines
 
 Concise dataset documentation and structure:
 
@@ -165,6 +192,8 @@ def get_image_parser(cfg: DictConfig) -> ImageParser:
         raise ValueError(f"Unknown image parser: {cfg.name}")
 ```
 
+General conventions is to sort parsed entities (cameras/depth maps/images) by their id for stride downsampling ( with stride optionally defined in `reconstruction.skip_n` parameter) and further matching based on id's. 
+
 ### Camera Conventions
 
 Cameras have to be converted to COLMAP coordinate system and be compatible with Gaussian Splatting COLMAP parser, that is:
@@ -182,3 +211,8 @@ DepthParser is usually **not responsible for resizing the depth maps**, as it po
 ### Present Optimizations
 
 We decided to not unify the optimizations in the reconstruction pipeline, thus adding new optimizations is slightly complicated. Refer to existing icp_registration and voxel_downsample_size optimizations in `src/reconstruction/rgbd_reconstruction.py` for inspiration.
+
+Present optimizations are:
+1. `voxel_downsample_size` - voxel downsampling of the point cloud
+2. `remove_stat_outliers` - statistical outlier removal of the point cloud
+3. `icp_registration` - Colored **I**terative **C**losest **P**oint registration of the point cloud
