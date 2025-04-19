@@ -280,6 +280,8 @@ def main():
             logger.error(f"Error processing scene {scene_name}: {e}")
             wandb.log({"error": str(e)})
         
+        run.finish()
+        
         try:
             gs_results = run_gaussian_splatting(scene_path, output_dir, args.project, run.id)
             logger.info(f"Completed Gaussian Splatting training for {scene_name} in {gs_results['gs_training_elapsed_time']:.2f} seconds")
