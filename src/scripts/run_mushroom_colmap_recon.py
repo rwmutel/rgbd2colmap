@@ -38,58 +38,31 @@ def run_command(
         full_command = command
     
     try:
-        process = subprocess.Popen(
+        process = subprocess.run(
             full_command,
             shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE if measure_memory else None,
+            stderr=subprocess.PIPE if measure_memory else None,
             text=True,
             cwd=cwd,
             env=merged_env
         )
-        
-        stdout_data, stderr_data = "", ""
-        
-        if stream_output:
-            # Stream output while capturing it
-            while True:
-                stdout_line = process.stdout.readline()
-                stderr_line = process.stderr.readline()
-                
-                if not stdout_line and not stderr_line and process.poll() is not None:
-                    break
-                
-                if stdout_line:
-                    stdout_line = stdout_line.rstrip()
-                    logger.info(stdout_line)
-                    stdout_data += stdout_line + "\n"
-                
-                if stderr_line:
-                    stderr_line = stderr_line.rstrip()
-                    logger.error(stderr_line)
-                    stderr_data += stderr_line + "\n"
-        else:
-            stdout_data, stderr_data = process.communicate()
-        
-        return_code = process.poll() if stream_output else process.wait()
+
+        return_code = process.returncode
         if return_code != 0:
             logger.error(f"Error executing command: {command}")
-            logger.error(f"STDOUT: {stdout_data}")
-            logger.error(f"STDERR: {stderr_data}")
             raise RuntimeError(f"Command failed with return code {return_code}")
         
         peak_memory_kb = None
         if measure_memory:
             # Look for the "Maximum resident set size" line in stderr
-            match = re.search(r"Maximum resident set size \(kbytes\): (\d+)", stderr_data)
+            match = re.search(r"Maximum resident set size \(kbytes\): (\d+)", process.stderr)
             if match:
                 peak_memory_kb = int(match.group(1))
                 peak_memory_mb = peak_memory_kb / 1024
                 logger.info(f"Peak memory usage: {peak_memory_mb:.2f} MB")
         
         return {
-            "stdout": stdout_data,
-            "stderr": stderr_data,
             "peak_memory_kb": peak_memory_kb
         }
     
