@@ -72,24 +72,24 @@ def run_command(
         logger.error(f"STDERR: {e.stderr if hasattr(e, 'stderr') else 'N/A'}")
         raise RuntimeError(f"Command failed with return code {e.returncode}")
 
-def run_gaussian_splatting(scene_path, wandb_project, run_id):
+def run_gaussian_splatting(scene_path, output_dir, wandb_project, run_id):
     """Run Gaussian Splatting training on a scene"""
     scene_path = Path(scene_path)
     scene_name = scene_path.parent.parent.name
     
-    output_dir = f"output/{scene_name}_colmap"
     start_time = time.time()
     
     gs_result = run_command(
-        f"conda run -n gaussian_splatting python train.py "
-        f"-s {str(scene_path)}/colmap "
+        # f"WANDB_DIR=/root/rgbd2colmap/wandb WANDB_RESUME=must WANDB_RUN_ID={run_id} " 
+        "python train.py "
+        f"-s {str(scene_path)}/{output_dir} "
         f"-i {str(scene_path)}/images "
         f"-m {output_dir} "
         f"--wandb_project {wandb_project} "
-        f"--existing_run_id {run_id}",
-        cwd="third-party/gaussian-splatting",
-        measure_memory=True,
-        stream_output=True,
+        f"--existing_run_id {run_id} ",
+        measure_memory=False,
+        stream_output=False,
+        cwd="third-party/gaussian-splatting/"
     )
     
     elapsed_time = time.time() - start_time
@@ -196,7 +196,10 @@ def main():
     parser = argparse.ArgumentParser(description='Run COLMAP reconstruction on multiple scenes')
     parser.add_argument('--project', type=str, default='thesis', help='WandB project name')
     parser.add_argument('--entity', type=str, default=None, help='WandB entity name')
-    parser.add_argument('--pipeline', type=str, help='Pipeline name to group by in weights and biases')
+    parser.add_argument('--pipeline', type=str, help='Pipeline name to group by in weights and biases',
+                        choices=["colmap_reconstruction",
+                                 "rgbd2colmap",
+                                 "rgbd2colmap_colmap_poses"])
     args = parser.parse_args()
     
     # List of scenes to process
@@ -212,7 +215,7 @@ def main():
         
         run = wandb.init(
             project=args.project,
-            name=f"{scene_name}-colmap-recon-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
+            name=f"{scene_name}-{args.pipeline}-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
             reinit=True,
             config={
                 "scene": scene_name,
@@ -225,17 +228,60 @@ def main():
         logger.info(f"WANDB_RUN_ID={run.id}")
         
         try:
-            result = run_colmap_reconstruction(scene_path)
+            if args.pipeline == "colmap_reconstruction":
+                output_dir = "colmap"
+                result = run_colmap_reconstruction(scene_path)
+            elif args.pipeline == "rgbd2colmap_colmap_poses":
+                output_dir = "rgbd2colmap_colmap_poses"
+                start = time.time()
+                result = run_command(
+                    "conda run -n rgbd2colmap python src/main.py "
+                    "--config-name main_mushroom "
+                    f"output_dir={scene_path}/{output_dir} "
+                    "reconstruction.parameters.icp_registration=False "
+                    f"reconstruction.camera_parser.source_path={scene_path}transformations_colmap.json "
+                    f"reconstruction.depth_parser.source_path={scene_path}depth "
+                    f"reconstruction.image_parser.source_path={scene_path}images ",
+                    measure_memory=True,
+                    stream_output=True
+                )
+                elapsed_time = time.time() - start
+                result.update({
+                    "reconstruction_elapsed_time": elapsed_time,
+                    "submodels_count": 1,
+                    "reconstruction_peak_memory_kb": result["peak_memory_kb"]
+                })
+            elif args.pipeline == "rgbd2colmap":
+                output_dir = "rgbd2colmap"
+                start = time.time()
+                result = run_command(
+                    "conda run -n rgbd2colmap python src/main.py "
+                    "--config-name main_mushroom "
+                    f"output_dir={scene_path}/{output_dir} "
+                    f"reconstruction.camera_parser.source_path={scene_path}transformations.json "
+                    f"reconstruction.depth_parser.source_path={scene_path}depth "
+                    f"reconstruction.image_parser.source_path={scene_path}images ",
+                    measure_memory=True,
+                    stream_output=True
+                )
+                elapsed_time = time.time() - start
+                result.update({
+                    "reconstruction_elapsed_time": elapsed_time,
+                    "submodels_count": 1,
+                    "reconstruction_peak_memory_kb": result["peak_memory_kb"]
+                })
+            else:
+                raise ValueError(f"Unknown pipeline: {args.pipeline}")
             
             wandb.log(result)
-            logger.info(f"Completed COLMAP reconstruction for {scene_name} in {result['reconstruction_elapsed_time']:.2f} seconds")
+            logger.info(f"Completed reconstruction for {scene_name} in {result['reconstruction_elapsed_time']:.2f} seconds")
             
         except Exception as e:
             logger.error(f"Error processing scene {scene_name}: {e}")
             wandb.log({"error": str(e)})
         
         try:
-            gs_results = run_gaussian_splatting(scene_path, args.project, run.id)
+            gs_results = run_gaussian_splatting(scene_path, output_dir, args.project, run.id)
             logger.info(f"Completed Gaussian Splatting training for {scene_name} in {gs_results['gs_training_elapsed_time']:.2f} seconds")
             
         except Exception as e:
