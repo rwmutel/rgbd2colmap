@@ -1,6 +1,6 @@
 reconstruction:
   parameters:
-    voxel_size: 0.05
+    voxel_size: 0.2
     icp_registration:
       max_iterations: 50
       relative_rmse: 1e-6
@@ -19,7 +19,7 @@ reconstruction:
     name: MushroomDepthParser
     source_path: ./data/MuSHRoom/room_datasets/classroom/iphone/short_capture/depth
 
-output_dir: ./data/MuSHRoom/room_datasets/classroom/iphone/short_capture/rgbd_recon/
+output_dir: ./data/MuSHRoom/room_datasets/classroom/iphone/short_capture/polycam_icp/
 save_reconstruction: true
 save_format: bin
 visualize: false
