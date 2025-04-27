@@ -100,12 +100,17 @@ def run_gaussian_splatting(scene_path, output_dir, wandb_project, run_id):
     }
     
 
-def run_colmap_reconstruction(scene_path):
+def run_colmap_reconstruction(scene_path, output_dir=None):
     """Run the COLMAP reconstruction pipeline on a scene"""
     scene_path = Path(scene_path)
-    colmap_dir = scene_path / "colmap" / "sparse"
-    
-    colmap_dir.mkdir(exist_ok=True, parents=True)
+    if output_dir is None:
+        colmap_dir = scene_path / "colmap" / "sparse"
+    else:
+        output_dir = Path(output_dir)
+        colmap_dir = output_dir / "sparse"
+
+    (scene_path / colmap_dir).mkdir(exist_ok=True, parents=True)
+    print(scene_path, output_dir, colmap_dir)
     
     start_time = time.time()
     
@@ -113,7 +118,7 @@ def run_colmap_reconstruction(scene_path):
     
     # Step 1: Feature extraction
     feature_result = run_command(
-        f"colmap feature_extractor --database_path colmap/sparse/database.db --image_path images --ImageReader.camera_model PINHOLE",
+        f"colmap feature_extractor --database_path {colmap_dir}/database.db --image_path images --ImageReader.camera_model PINHOLE",
         cwd=scene_path,
         measure_memory=True
     )
@@ -121,7 +126,7 @@ def run_colmap_reconstruction(scene_path):
     
     # Step 2: Matching
     matching_result = run_command(
-        f"colmap exhaustive_matcher --database_path colmap/sparse/database.db --ExhaustiveMatching.block_size 20",
+        f"colmap exhaustive_matcher --database_path {colmap_dir}/database.db --ExhaustiveMatching.block_size 20",
         cwd=scene_path,
         measure_memory=True
     )
@@ -129,7 +134,7 @@ def run_colmap_reconstruction(scene_path):
     
     # Step 3: Mapping
     mapping_result = run_command(
-        f"colmap mapper --database_path colmap/sparse/database.db --image_path images --output_path colmap/sparse",
+        f"colmap mapper --database_path {colmap_dir}/database.db --image_path images --output_path {colmap_dir}",
         cwd=scene_path,
         measure_memory=True
     )
@@ -173,7 +178,7 @@ def run_colmap_reconstruction(scene_path):
             )
     
     bundle_result = run_command(
-        f"colmap bundle_adjuster --input_path colmap/sparse/0 --output_path colmap/sparse/0",
+        f"colmap bundle_adjuster --input_path {colmap_dir}/0 --output_path {colmap_dir}/0",
         cwd=scene_path
     )
     elapsed_time = time.time() - start_time
@@ -199,15 +204,29 @@ def main():
     parser.add_argument('--pipeline', type=str, help='Pipeline name to group by in weights and biases',
                         choices=["colmap_reconstruction",
                                  "rgbd2colmap",
+                                 "rgbd2colmap_no_icp",
                                  "rgbd2colmap_colmap_poses"])
     args = parser.parse_args()
     
     # List of scenes to process
+    # scenes = [
+    #     "/root/rgbd2colmap/data/MuSHRoom/classroom/iphone/short_capture/",
+    #     # "/path/to/scene2",
+    #     # "/path/to/scene3",
+    #     # Add more scenes as needed
+    # ]
+    # scenes = sorted(Path("/root/rgbd2colmap/data/MuSHRoom/").glob("*/iphone/short_capture/"))
     scenes = [
-        "/root/rgbd2colmap/data/MuSHRoom/classroom/iphone/short_capture/",
-        # "/path/to/scene2",
-        # "/path/to/scene3",
-        # Add more scenes as needed
+        # '/root/rgbd2colmap/data/MuSHRoom/activity/iphone/short_capture',
+        # '/root/rgbd2colmap/data/MuSHRoom/classroom/iphone/short_capture',
+        # '/root/rgbd2colmap/data/MuSHRoom/coffee_room/iphone/short_capture',
+        # '/root/rgbd2colmap/data/MuSHRoom/computer/iphone/short_capture',
+        # '/root/rgbd2colmap/data/MuSHRoom/honka/iphone/short_capture',
+        # '/root/rgbd2colmap/data/MuSHRoom/koivu/iphone/short_capture',
+        # '/root/rgbd2colmap/data/MuSHRoom/kokko/iphone/short_capture',
+        # '/root/rgbd2colmap/data/MuSHRoom/olohuone/iphone/short_capture',
+        # '/root/rgbd2colmap/data/MuSHRoom/sauna/iphone/short_capture',
+        # '/root/rgbd2colmap/data/MuSHRoom/vr_room/iphone/short_capture'
     ]
     
     for scene_path in scenes:
@@ -239,9 +258,9 @@ def main():
                     "--config-name main_mushroom "
                     f"output_dir={scene_path}/{output_dir} "
                     "reconstruction.parameters.icp_registration=False "
-                    f"reconstruction.camera_parser.source_path={scene_path}transformations_colmap.json "
-                    f"reconstruction.depth_parser.source_path={scene_path}depth "
-                    f"reconstruction.image_parser.source_path={scene_path}images ",
+                    f"reconstruction.camera_parser.source_path={scene_path}/transformations_colmap.json "
+                    f"reconstruction.depth_parser.source_path={scene_path}/depth "
+                    f"reconstruction.image_parser.source_path={scene_path}/images ",
                     measure_memory=True,
                     stream_output=True
                 )
@@ -258,9 +277,29 @@ def main():
                     "conda run -n rgbd2colmap python src/main.py "
                     "--config-name main_mushroom "
                     f"output_dir={scene_path}/{output_dir} "
-                    f"reconstruction.camera_parser.source_path={scene_path}transformations.json "
-                    f"reconstruction.depth_parser.source_path={scene_path}depth "
-                    f"reconstruction.image_parser.source_path={scene_path}images ",
+                    f"reconstruction.camera_parser.source_path={scene_path}/transformations.json "
+                    f"reconstruction.depth_parser.source_path={scene_path}/depth "
+                    f"reconstruction.image_parser.source_path={scene_path}/images ",
+                    measure_memory=True,
+                    stream_output=True
+                )
+                elapsed_time = time.time() - start
+                result.update({
+                    "reconstruction_elapsed_time": elapsed_time,
+                    "submodels_count": 1,
+                    "reconstruction_peak_memory_kb": result["peak_memory_kb"]
+                })
+            elif args.pipeline == "rgbd2colmap_no_icp":
+                output_dir = "rgbd2colmap"
+                start = time.time()
+                result = run_command(
+                    "conda run -n rgbd2colmap python src/main.py "
+                    "--config-name main_mushroom "
+                    f"output_dir={scene_path}/{output_dir} "
+                    "reconstruction.parameters.icp_registration=False "
+                    f"reconstruction.camera_parser.source_path={scene_path}/transformations.json "
+                    f"reconstruction.depth_parser.source_path={scene_path}/depth "
+                    f"reconstruction.image_parser.source_path={scene_path}/images ",
                     measure_memory=True,
                     stream_output=True
                 )
@@ -281,7 +320,7 @@ def main():
             wandb.log({"error": str(e)})
         
         run.finish()
-        
+
         try:
             gs_results = run_gaussian_splatting(scene_path, output_dir, args.project, run.id)
             logger.info(f"Completed Gaussian Splatting training for {scene_name} in {gs_results['gs_training_elapsed_time']:.2f} seconds")
