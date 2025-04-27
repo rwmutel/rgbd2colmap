@@ -36,6 +36,16 @@ conda env create --file environment.yml
 conda activate gaussian_splatting
 ```
 
+**Hint:** if you would like to use newer cuda version, you should look into `third-party/gaussian-splatting/patches`, which contains [patches from community](https://github.com/graphdeco-inria/gaussian-splatting/issues/923).
+To apply the patches, run:
+
+```shell
+cd third-party/gaussian-splatting/SIBR_viewers
+git apply ../patches/SIBR_viewers.patch.txt
+cd ../submodules/simple-knn
+git apply ../../patches/simple-knn.patch.txt
+```
+
 ## Reproducing Experimental Results
 
 Results on MuSHRoom dataset are obtained via runner script that integrates both reconstruction and Gaussian Splatting training. Options for reconstruction are
@@ -109,13 +119,52 @@ For easier use of **MuSHRoom parsers** change base config:
 python src/main.py --config-name main_mushroom
 ```
 
-## Dataset
+## Datasets
+
+### Custom Dataset
+
+[**link**](https://drive.google.com/drive/folders/1m9kgqdaphVVSgP8UOTz3LbwzdPqdEh3L?usp=sharing)
+
+**Hint:** download dataset easily with `gdown`:
+
+```shell
+pip install gdown
+gdown --folder 1m9kgqdaphVVSgP8UOTz3LbwzdPqdEh3L
+```
+
+This is a custom dataset captured with iPhone 12 Pro. It presents the results of Apple native ARKit data obtained in real-time when scanning, captured with an in-house built iOS logger. The camera poses are obtained from the ARKit visual-intertial odometry.
+
+Dataset contains captures of scenes from open-space offices in Kyiv and Kharkiv, Ukraine. Dataset is made to emulate "casual" captures with possibly rough movements and blurred images.
+
+Frame distribution is as follows:
+
+|    Scene   | Frames |
+|:----------:|:------:|
+| office26   |   133  |
+| promodo    |   176  |
+| conference |   385  |
+
+
+
+Dataset structure and Documentation:
+
+``` 
+It-Jim/
+└── home/
+    ...
+└── office/
+    └── frames/   # folder with .jpg RGB images and .txt 255x191 (original capturing resolution) " "-separated depth values in meters
+    └── scan_output/
+        └── camera_poses.json  # ARKit camera poses in y-up, z-forward coordinates matched with depth and RGB
+```
 
 ### MuSHRoom dataset
 
 **X. Ren, W. Wang, D. Cai, T. Tuominen, J. Kannala, and E. Rahtu, ‘MuSHRoom: Multi-Sensor Hybrid Room Dataset for Joint 3D Reconstruction and Novel View Synthesis’, arXiv [cs.CV]. 2023.**
 
 [**link**](https://zenodo.org/communities/mushroom/records?q=&l=list&p=1&s=10&sort=newest)
+
+To put our approach on the 3D GS research map, we choose to evaluate it on an established academic dataset.
 
 This particular dataset was chosen because:
 
@@ -145,32 +194,6 @@ MuSHRoom/
     └── coffee_room/
         ...
     ...
-```
-
-### Custom Dataset
-
-This is a custom dataset captured with consumer-grade LiDAR on iPhone Pro series. It presents the results of Apple native ARKit data obtained in real-time when scanning, captured with a simple iOS logger. The camera poses are obtained from the ARKit visual-intertial SLAM.
-
-[**link coming soon**]()
-
-Dataset structure and Documentation:
-
-``` 
-It-Jim/
-└── home/
-    ...
-└── office/
-    └── frames/   # folder with .jpg RGB images and .txt 255x191 (original capturing resolution) " "-separated depth values in meters
-    └── scan_output/
-        ├── camera_poses.json  # ARKit camera poses in y-up, z-forward coordinates matched with depth and RGB
-        ├── classification.txt  # Classification of objects in the scene
-        ├── mesh.obj    # Scene mesh in OBJ format
-        ├── mesh.mtl    # Corresponding scene mesh materials
-        ├── room.json   # Apple Roomplan output
-        ├── room.plist   # Room plan in Apple proprietary format
-        ├── room.usdz   # Room plan in USDZ format
-
-        └── transformations_colmap.json  # COLMAP output camera poses
 ```
 
 ## Extension Guide
