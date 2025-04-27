@@ -5,7 +5,7 @@ reconstruction:
       max_iterations: 50
       relative_rmse: 1e-6
     skip_n: 1
-    max_depth: 6.0
+    max_depth: 5.0
     remove_stat_outliers:
       nb_neighbors: 20
       std_ratio: 1.0
