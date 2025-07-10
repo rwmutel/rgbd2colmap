@@ -234,7 +234,7 @@ def copy_images(images: Dict[int | str, Image], dst_dir: Path):
         dst_dir.mkdir()
     for image in images.values():
         dst_image_path = dst_dir / image.path.name
-        cv2.imwrite(str(dst_image_path), image.image_np)
+        cv2.imwrite(str(dst_image_path), cv2.cvtColor(image.image_np, cv2.COLOR_RGB2BGR))
 
 
 def parse_int_id(iid: int | str) -> int:
