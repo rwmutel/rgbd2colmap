@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -67,7 +67,7 @@ class ARKitCameraParser(CameraParser):
         return np.array(extrinsics_data, dtype=np.float32)
     
     @staticmethod
-    def find_pose_sections(lines: List[str]) -> (int, int):
+    def find_pose_sections(lines: List[str]) -> Tuple[int, int]:
         extrinsics_start = None
         intrinsics_start = None
         for i, line in enumerate(lines):
